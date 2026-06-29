@@ -6,6 +6,10 @@
 | Management | Cross-company read, dashboards, reports | High-value quotations, POs, payments, salary changes | No routine transaction editing |
 | Finance Manager | Finance, bills, payments, financial reports | Payments, expenses, vendor bills | No HR personal documents |
 | HR Manager | Employees, attendance, leave, payroll structure | Leave and salary changes | Salary/bank data restricted to HR/Management |
+| HR Officer | Employee lifecycle, recruitment, attendance, leave, documents | Submits employee and recruitment approvals | No payroll approval or unrestricted bank data |
+| Payroll Manager | Payroll runs, payslips, loans, advances, gratuity, settlements | Payroll validation and approval step | No recruitment or unrelated employee-document access |
+| Department Manager | Own team directory, attendance and leave | Team leave and attendance corrections | Team scope only; no salary or bank data |
+| Employee | Own profile, documents, leave, attendance corrections and payslips | None; submits self-service requests | Own employee record only |
 | Sales Manager | CRM, pricing, quotations, sales reports | Discounts and quotations | Cannot post finance journals |
 | Sales Executive | Assigned leads, customers, quotations, follow-ups | None; submits requests | Margin floor and ownership scope enforced |
 | Shipping Team | Shipments, packing lists, delivery notes | Dispatch confirmation | Read-only sales order lines |

@@ -25,8 +25,8 @@ Copy `.env.example` to `.env.production`. Generate `APP_ENCRYPTION_KEY` with a c
 Place the issued certificate and private key at `deploy/certs/fullchain.pem` and `deploy/certs/privkey.pem`. For automated renewal, use Certbot on the host and reload Nginx after renewal.
 
 ```bash
-docker compose build --pull
-docker compose up -d
+docker compose --profile production build --pull
+docker compose --profile production up -d
 docker compose ps
 curl -fsS https://erp.medtech.qa/api/health
 ```
@@ -50,4 +50,3 @@ sha256sum medtech-*.dump > checksums.txt
 ## 6. Release procedure
 
 Test migrations on staging using a production-shaped snapshot with sensitive data masked. Take a fresh backup, deploy migrations, deploy the immutable application image, run the health check and smoke tests, then monitor errors and database load. Database migrations must be backward-compatible for rolling deployments; destructive cleanup is a separate later release.
-
