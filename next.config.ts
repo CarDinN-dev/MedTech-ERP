@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  outputFileTracingRoot: process.cwd(),
   poweredByHeader: false,
   experimental: { optimizePackageImports: ["lucide-react", "recharts"] },
   headers: async () => [{

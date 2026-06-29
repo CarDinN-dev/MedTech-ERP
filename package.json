@@ -6,12 +6,16 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "graphify": "python -m graphify",
-    "graphify:extract": "python -m graphify update . --no-cluster",
-    "graphify:update": "python -m graphify update .",
-    "graphify:tree": "python -m graphify tree --graph graphify-out/graph.json --output graphify-out/GRAPH_TREE.html --root . --label medtech-erp"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:db": "node scripts/run-database-tests.mjs",
+    "test:users": "node scripts/create-test-users.mjs",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:all": "npm run typecheck && npm run test:coverage && npm run test:db && npm run test:e2e"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",
@@ -27,22 +31,29 @@
     "react-dom": "^19.0.0",
     "recharts": "^3.4.1",
     "tailwind-merge": "^2.6.0",
+    "xlsx": "^0.18.5",
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.0",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/node": "^22.10.2",
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
+    "@vitest/coverage-v8": "^3.2.6",
     "autoprefixer": "^10.4.20",
     "eslint": "^9.17.0",
     "eslint-config-next": "^15.3.0",
+    "jsdom": "^26.1.0",
     "postcss": "^8.5.10",
-    "supabase": "^2.108.0",
     "tailwindcss": "^3.4.17",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "vitest": "^3.2.6"
   },
   "overrides": {
-    "postcss": "$postcss",
+    "postcss": "^8.5.10",
     "uuid": "^11.1.1"
   }
 }
