@@ -1,0 +1,11 @@
+FROM mcr.microsoft.com/playwright:v1.61.0-noble
+
+WORKDIR /app
+ENV CI=1
+
+COPY package.json package-lock.json ./
+RUN npm ci
+
+COPY . .
+
+CMD ["npm", "run", "test:e2e", "--", "--project=chromium"]
