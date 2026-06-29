@@ -45,11 +45,43 @@ where r.code in ('finance_manager','hr_manager','sales_manager') on conflict do 
 insert into public.role_permissions(role_id, permission_id)
 select r.id, p.id from public.roles r cross join public.permissions p where r.code = 'auditor' and p.action in ('view','export') on conflict do nothing;
 
+-- Enterprise HR roles. Employee and Department Manager access stays record-scoped in RLS.
+insert into public.role_permissions(role_id, permission_id)
+select r.id, p.id from public.roles r join public.permissions p on p.module = 'hr'
+where r.code = 'hr_officer' and p.action in ('view','create','update','export') on conflict do nothing;
+insert into public.role_permissions(role_id, permission_id)
+select r.id, p.id from public.roles r join public.permissions p on p.module = 'hr'
+where r.code = 'payroll_manager' and p.action in ('view','create','update','approve','export') on conflict do nothing;
+
 insert into public.departments(code, name, cost_center) values
 ('EXEC','Executive Management','CC-100'),('FIN','Finance','CC-200'),('HR','Human Resources','CC-300'),
 ('SAL','Sales & Marketing','CC-400'),('PRC','Procurement','CC-500'),('WHS','Warehouse','CC-600'),
 ('LOG','Shipping & Logistics','CC-700'),('SRV','Service & Support','CC-800'),('PRJ','Projects','CC-900')
 on conflict(code) do nothing;
+
+insert into public.designations(code,name,department_id,grade,description)
+select seed.code, seed.name, d.id, seed.grade, seed.description
+from (values
+  ('HR-MGR','HR Manager','HR','M2','Leads people operations and compliance'),
+  ('HR-OFF','HR Officer','HR','P3','Employee lifecycle and HR administration'),
+  ('PAY-MGR','Payroll Manager','FIN','M2','Payroll validation, WPS and settlements'),
+  ('BME','Biomedical Engineer','SRV','P3','Field service and medical equipment support'),
+  ('KAM','Key Account Manager','SAL','P4','Strategic healthcare account management'),
+  ('PROC-OFF','Procurement Officer','PRC','P3','Sourcing and supplier operations')
+) as seed(code,name,department_code,grade,description)
+join public.departments d on d.code = seed.department_code
+on conflict(code) do nothing;
+
+insert into public.approval_workflows(entity_type,name,conditions,steps)
+select workflow.entity_type, workflow.name, workflow.conditions::jsonb, workflow.steps::jsonb
+from (values
+  ('leave_request','HR leave approval','{"days_over":0}','[{"step":1,"role":"department_manager"},{"step":2,"role":"hr_manager"}]'),
+  ('payroll_run','Payroll approval','{"net_total_over":0}','[{"step":1,"role":"payroll_manager"},{"step":2,"role":"finance_manager"},{"step":3,"role":"management"}]'),
+  ('recruitment_request','Manpower request approval','{"requested_positions_over":0}','[{"step":1,"role":"department_manager"},{"step":2,"role":"hr_manager"},{"step":3,"role":"management"}]'),
+  ('salary_revision','Salary revision approval','{"change_over":0}','[{"step":1,"role":"hr_manager"},{"step":2,"role":"finance_manager"},{"step":3,"role":"management"}]'),
+  ('employee_creation','Employee creation approval','{}','[{"step":1,"role":"hr_manager"}]')
+) as workflow(entity_type,name,conditions,steps)
+where not exists (select 1 from public.approval_workflows existing where existing.entity_type = workflow.entity_type and existing.name = workflow.name);
 
 insert into public.company_settings(legal_name, trade_name, address_line_1, email, phone, website)
 select 'MedTech Corporation Trading W.L.L.','MedTech','Doha, State of Qatar','info@medtech.qa','+974 4400 0000','https://medtech.qa'
@@ -78,4 +110,3 @@ insert into public.chart_of_accounts(code,name,account_type) values
 ('2000','Liabilities','liability'),('2100','Accounts Payable','liability'),('3000','Equity','equity'),
 ('4000','Sales Revenue','revenue'),('4100','Service Revenue','revenue'),('5000','Cost of Goods Sold','expense'),('6000','Operating Expenses','expense')
 on conflict(code) do nothing;
-
