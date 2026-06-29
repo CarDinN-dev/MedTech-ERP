@@ -1,0 +1,8 @@
+[
+  { "user": "Admin Test", "email": "admin.test@medtech.qa", "password": "MedTech@Test2026!", "role": "Super Admin", "roleCode": "super_admin", "department": "Executive" },
+  { "user": "HR Test", "email": "hr.test@medtech.qa", "password": "MedTech@Test2026!", "role": "HR Manager", "roleCode": "hr_manager", "department": "Human Resources" },
+  { "user": "Finance Test", "email": "finance.test@medtech.qa", "password": "MedTech@Test2026!", "role": "Finance Manager", "roleCode": "finance_manager", "department": "Finance" },
+  { "user": "Sales Test", "email": "sales.test@medtech.qa", "password": "MedTech@Test2026!", "role": "Sales Manager", "roleCode": "sales_manager", "department": "Sales" },
+  { "user": "Shipping Test", "email": "shipping.test@medtech.qa", "password": "MedTech@Test2026!", "role": "Shipping Team", "roleCode": "shipping_team", "department": "Shipping & Logistics" },
+  { "user": "Viewer Test", "email": "viewer.test@medtech.qa", "password": "MedTech@Test2026!", "role": "Read-only Auditor", "roleCode": "auditor", "department": "Audit" }
+]
