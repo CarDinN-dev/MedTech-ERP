@@ -18,63 +18,25 @@ export const productImportSchema = z.object({
   purchase_price: money.default(0), sale_price: money.default(0), minimum_stock: z.number().nonnegative().default(0)
 });
 
-export const leaveApplicationStatusSchema = z.enum(["draft", "submitted", "pending_approval", "approved", "rejected", "cancelled"]);
-export const leaveApprovalDecisionSchema = z.enum(["pending", "approved", "rejected"]);
-export const leaveHandoverStatusSchema = z.enum(["pending", "accepted", "cancelled"]);
-export const leaveClearanceStatusSchema = z.enum(["not_required", "pending", "in_progress", "cleared", "blocked"]);
-export const leaveRejoinStatusSchema = z.enum(["pending_rejoin", "rejoined_on_time", "delayed_rejoin", "no_show", "verified"]);
-
-export const leaveApplicationSchema = z.object({
-  employee_id: uuid,
-  employee_code: z.string().min(1).max(50),
-  employee_name: z.string().min(2).max(200),
-  department: z.string().max(160).nullish(),
-  designation: z.string().max(160).nullish(),
-  leave_type: z.string().min(2).max(80),
-  start_date: z.string().date(),
-  end_date: z.string().date(),
-  calendar_days: z.number().positive(),
-  working_days: z.number().positive(),
-  balance_before: z.number().nonnegative(),
-  balance_after: z.number().nonnegative(),
-  purpose: z.string().max(2000).nullish(),
-  destination: z.string().max(160).nullish(),
-  travel_from: z.string().date().nullish().or(z.literal("")),
-  travel_to: z.string().date().nullish().or(z.literal("")),
-  emergency_contact_name: z.string().max(160).nullish(),
-  emergency_contact_phone: z.string().max(60).nullish(),
-  emergency_contact_email: z.string().email().nullish().or(z.literal("")),
-  handover_to_employee_id: uuid.nullish(),
-  handover_to_employee_code: z.string().max(50).nullish(),
-  handover_to_name: z.string().max(200).nullish(),
-  status: leaveApplicationStatusSchema
-}).refine(value => value.end_date >= value.start_date, { message: "End date must be on or after start date", path: ["end_date"] });
-
-export const leaveApprovalDecisionUpdateSchema = z.object({
-  decision: z.enum(["approved", "rejected"]),
-  approval_notes: z.string().max(2000).optional()
+export const employeeOnboardingSchema = z.object({
+  "Full Name": z.string().trim().optional(),
+  Employee: z.string().trim().optional(),
+  "Email Address": z.string().trim().email("Enter a valid work email").optional().or(z.literal("")),
+  Email: z.string().trim().email("Enter a valid work email").optional().or(z.literal("")),
+  "Account email": z.string().trim().email("Enter a valid account email").optional().or(z.literal(""))
+}).refine(value => (value["Full Name"] || value.Employee || "").length >= 2, {
+  message: "Full name must contain at least 2 characters",
+  path: ["Full Name"]
+}).refine(value => Boolean(value["Email Address"] || value.Email || value["Account email"]), {
+  message: "Work email is required",
+  path: ["Email Address"]
 });
 
-export const leaveHandoverUpdateSchema = z.object({
-  tasks_notes: z.string().max(4000).nullish(),
-  attachment_url: z.string().max(1000).nullish(),
-  status: leaveHandoverStatusSchema.optional(),
-  accepted_at: z.string().datetime().nullish()
-});
-
-export const leaveClearanceUpdateSchema = z.object({
-  clearance_items: z.array(z.string().trim().min(1).max(240)).max(40),
-  responsible_person: z.string().max(200).nullish(),
-  status: leaveClearanceStatusSchema,
-  comments: z.string().max(4000).nullish(),
-  completed_at: z.string().datetime().nullish()
-});
-
-export const leaveRejoinUpdateSchema = z.object({
-  actual_rejoin_date: z.string().date().nullish().or(z.literal("")),
-  reason_for_delay: z.string().max(4000).nullish(),
-  medical_or_supporting_attachment: z.string().max(1000).nullish(),
-  status: leaveRejoinStatusSchema,
-  hr_verified_by: z.string().max(200).nullish(),
-  verified_at: z.string().datetime().nullish()
+export const userAccessSchema = z.object({
+  User: z.string().trim().min(2),
+  Email: z.string().trim().email(),
+  Role: z.string().trim().min(2),
+  Department: z.string().trim().min(2),
+  Password: z.string().min(8).optional().or(z.literal("")),
+  Status: z.enum(["Active", "Invited", "Suspended"])
 });
