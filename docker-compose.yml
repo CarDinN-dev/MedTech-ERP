@@ -6,8 +6,8 @@ services:
     image: medtech-erp:latest
     restart: unless-stopped
     env_file: .env.production
-    expose:
-      - "3000"
+    ports:
+      - "3000:3000"
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/health"]
       interval: 30s
@@ -21,6 +21,7 @@ services:
 
   nginx:
     image: nginx:1.27-alpine
+    profiles: ["production"]
     restart: unless-stopped
     depends_on:
       app:
