@@ -1,7 +1,16 @@
 node_modules
 .next
 .git
+.github
 .env*
 *.log
 supabase/.temp
 docs
+tests
+coverage
+playwright-report
+test-results
+Dockerfile.test
+Dockerfile.e2e
+tmp
+output
