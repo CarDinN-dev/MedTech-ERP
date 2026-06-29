@@ -3,7 +3,11 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "MedTech ERP",
-  description: "Enterprise operations platform for MedTech Corporation Trading"
+  description: "Enterprise operations platform for MedTech Corporation Trading",
+  icons: {
+    icon: "/brand-mark.svg?v=2",
+    shortcut: "/brand-mark.svg?v=2"
+  }
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
