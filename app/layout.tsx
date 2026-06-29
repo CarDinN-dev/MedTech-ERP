@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   description: "Enterprise operations platform for MedTech Corporation Trading",
   icons: {
     icon: "/brand-mark.svg?v=2",
-    shortcut: "/brand-mark.svg?v=2"
+    shortcut: "/favicon.ico"
   }
 };
 
