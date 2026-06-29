@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Area, AreaChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer as RechartsResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { ArrowRight, CalendarDays, Check, ChevronRight, Clock3, MoreHorizontal, Plus, Sparkles, TrendingUp, Users, Warehouse, Wrench, ShieldCheck, Handshake } from "lucide-react";
 import { dashboardKpis, quickActions } from "@/lib/erp-data";
+import { getDemoSession } from "@/lib/demo-auth";
 import { cn } from "@/lib/utils";
 import { Button, StatusBadge } from "@/components/ui";
 
@@ -31,14 +33,20 @@ function ResponsiveContainer(props: React.ComponentProps<typeof RechartsResponsi
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   if (!mounted) return <div className="h-full w-full animate-pulse rounded-xl bg-slate-50 dark:bg-slate-900/40" />;
-  return <RechartsResponsiveContainer minWidth={0} {...props} />;
+  return <RechartsResponsiveContainer minWidth={0} initialDimension={{ width: 1, height: 1 }} {...props} />;
 }
 
 export function Dashboard() {
+  const router = useRouter();
+  const [firstName, setFirstName] = useState("there");
+  useEffect(() => {
+    const session = getDemoSession();
+    if (session?.name) setFirstName(session.name.trim().split(/\s+/)[0]);
+  }, []);
   return <div className="mx-auto max-w-[1600px] p-4 md:p-7">
     <div className="mb-6 flex flex-col justify-between gap-4 md:flex-row md:items-end">
-      <div><div className="mb-1 flex items-center gap-2 text-xs font-medium text-teal-600"><Sparkles className="h-3.5 w-3.5" /> Executive workspace</div><h1 className="text-2xl font-bold tracking-tight md:text-[28px]">Good morning, Ahmed</h1><p className="mt-1 text-[13px] text-[var(--muted)]">Here’s what’s happening across MedTech today, 20 June 2026.</p></div>
-      <div className="flex items-center gap-2"><Button variant="secondary"><CalendarDays className="h-4 w-4" /> 1–20 Jun 2026</Button><Button><Plus className="h-4 w-4" /> Quick create</Button></div>
+      <div><div className="mb-1 flex items-center gap-2 text-xs font-medium text-teal-600"><Sparkles className="h-3.5 w-3.5" /> Executive workspace</div><h1 className="text-2xl font-bold tracking-tight md:text-[28px]">Good morning, {firstName}</h1><p className="mt-1 text-[13px] text-[var(--muted)]">Here’s what’s happening across MedTech today, 20 June 2026.</p></div>
+      <div className="flex items-center gap-2"><Button variant="secondary"><CalendarDays className="h-4 w-4" /> 1–20 Jun 2026</Button><Button onClick={() => router.push("/sales")}><Plus className="h-4 w-4" /> Quick create</Button></div>
     </div>
 
     <section className="mb-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{dashboardKpis.map((kpi, index) => { const Icon = kpi.icon; const colors: Record<string, string> = { teal: "bg-teal-50 text-teal-600 dark:bg-teal-950/60", blue: "bg-blue-50 text-blue-600 dark:bg-blue-950/60", orange: "bg-orange-50 text-orange-600 dark:bg-orange-950/60", rose: "bg-rose-50 text-rose-600 dark:bg-rose-950/60" }; return <div key={kpi.title} className="relative overflow-hidden rounded-2xl border bg-[var(--panel)] p-5 shadow-soft animate-in" style={{ animationDelay: `${index * 45}ms` }}><div className="flex items-start justify-between"><div className={cn("rounded-xl p-2.5", colors[kpi.color])}><Icon className="h-5 w-5" /></div><button className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"><MoreHorizontal className="h-4 w-4" /></button></div><p className="mt-4 text-xs font-medium text-[var(--muted)]">{kpi.title}</p><div className="mt-1 text-[24px] font-bold tracking-tight tabular">{kpi.value}</div><div className="mt-2 flex items-center gap-1.5 text-[11px]"><span className={cn("font-semibold", index < 2 ? "text-emerald-600" : index === 2 ? "text-amber-600" : "text-rose-600")}>{kpi.change}</span><span className="text-slate-400">{kpi.note}</span></div><div className={cn("absolute -bottom-10 -right-8 h-24 w-24 rounded-full opacity-[.06]", colors[kpi.color].split(" ")[0].replace("50", "500"))} /></div>; })}</section>
