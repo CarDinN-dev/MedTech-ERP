@@ -173,7 +173,7 @@ const definitions: Record<ModuleKey, ModuleDefinition> = {
     tabs: ["Users", "Roles & permissions", "Company", "Numbering", "Audit log"], primaryAction: "Invite user",
     columns: ["User", "Email", "Role", "Department", "Last active", "Status"],
     rows: [
-      { User: "Ahmed Al-Mohannadi", Email: "a.almohannadi@medtech.qa", Role: "Management", Department: "Executive", "Last active": "Now", Status: "Active" },
+      { User: "Kashif", Email: "admin@medtech.qa", Role: "Super Admin", Department: "Executive", "Last active": "Now", Status: "Active", Password: "MedTech@2026" },
       { User: "Aisha Rahman", Email: "a.rahman@medtech.qa", Role: "Finance Manager", Department: "Finance", "Last active": "8 min ago", Status: "Active" },
       { User: "Fahad Al-Kuwari", Email: "f.alkuwari@medtech.qa", Role: "Sales Manager", Department: "Sales", "Last active": "21 min ago", Status: "Active" },
       { User: "Naveen Kumar", Email: "n.kumar@medtech.qa", Role: "Service Engineer", Department: "Service", "Last active": "2 hours ago", Status: "Active" }
