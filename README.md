@@ -1,5 +1,7 @@
 # MedTech ERP
 
+Production test instructions and isolated test identities are documented in [docs/TESTING.md](docs/TESTING.md).
+
 Production-oriented enterprise resource planning platform for MedTech Corporation Trading W.L.L., Doha, Qatar. It provides one modular workspace for finance, HR, sales, procurement, inventory, shipping, after-sales service, turnkey projects, documents, approvals, reporting, and administration.
 
 ## Included
@@ -24,6 +26,8 @@ npm run dev
 ```
 
 Open `http://localhost:3000`. If Supabase variables are omitted, the interface runs in presentation mode without authentication so the design can be reviewed. Set the variables to activate session enforcement.
+
+For the Docker client-demo build, create `.env.production` from `.env.example` (leave the two public Supabase values empty for local demo authentication), then run `docker compose up -d --build app`. Open `http://127.0.0.1:3000`. The Nginx TLS proxy is intentionally kept in the explicit `production` Compose profile so Windows port 80/443 reservations do not block local testing.
 
 ## Project structure
 
