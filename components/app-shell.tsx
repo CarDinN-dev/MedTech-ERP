@@ -32,7 +32,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const sidebar = <aside className="flex h-full w-[248px] flex-col bg-[#17232e] text-slate-300">
     <div className="flex h-[72px] items-center gap-3 border-b border-white/10 px-5">
-      <div className="grid h-9 w-9 place-items-center rounded-xl bg-teal-500 text-white shadow-lg shadow-teal-950/30"><span className="text-lg font-black">M</span></div>
+      <div className="grid h-12 w-12 place-items-center overflow-hidden rounded-xl bg-white shadow-lg shadow-teal-950/30"><img src="/brand-mark.svg?v=2" alt="MedTech" className="h-11 w-11 object-contain" /></div>
       <div><div className="text-[15px] font-bold tracking-tight text-white">MedTech <span className="font-medium text-teal-400">ERP</span></div><div className="text-[10px] tracking-[.16em] text-slate-500">CORPORATION TRADING</div></div>
       <button onClick={() => setMobileOpen(false)} className="ml-auto lg:hidden"><X className="h-5 w-5" /></button>
     </div>
