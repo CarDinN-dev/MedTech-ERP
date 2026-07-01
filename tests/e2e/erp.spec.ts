@@ -58,6 +58,41 @@ test("employee onboarding shows controlled validation feedback", async ({ page }
   await expect(page.getByRole("heading", { name: "Employee onboarding" })).toBeVisible();
 });
 
+test("HR access provisioning creates, edits, views and lists assignment fields", async ({ page }) => {
+  await login(page, testUsers[1]);
+  await page.goto("/hr");
+  await page.getByTestId("hr-tab-access-provisioning").click();
+  await expect(page.getByRole("button", { name: "Sort by Company ID" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Sort by Email", exact: true })).toBeVisible();
+
+  await page.getByRole("button", { name: "Add access request" }).click();
+  const createDialog = page.getByRole("dialog", { name: "Add access request" });
+  await createDialog.getByLabel("Employee Code", { exact: true }).fill("MT-0053");
+  await createDialog.getByLabel("Company ID", { exact: true }).fill("CID-QA-9001");
+  await createDialog.getByLabel("Requested Access", { exact: true }).fill("Procurement portal and reporting");
+  await createDialog.getByLabel("ERP Role", { exact: true }).selectOption("Employee");
+  await createDialog.getByLabel("Company Car", { exact: true }).selectOption("Not Assigned");
+  await createDialog.getByLabel("Accommodation", { exact: true }).selectOption("Assigned");
+  await createDialog.getByLabel("Desk", { exact: true }).selectOption("Assigned");
+  await createDialog.getByLabel("Stationery", { exact: true }).selectOption("Assigned");
+  await createDialog.getByLabel("Email", { exact: true }).selectOption("Assigned");
+  await createDialog.getByLabel("Business Card", { exact: true }).selectOption("Assigned");
+  await createDialog.getByLabel("Laptop or PC", { exact: true }).selectOption("PC");
+  await createDialog.getByRole("button", { name: "Save record" }).click();
+  await expect(page.getByRole("cell", { name: "CID-QA-9001", exact: true })).toBeVisible();
+  await expect(page.getByRole("cell", { name: "PC", exact: true })).toBeVisible();
+
+  await page.getByRole("row", { name: /CID-QA-9001/ }).getByRole("button", { name: /Open/ }).click();
+  const editDialog = page.getByRole("dialog", { name: "Edit Access Provisioning" });
+  await expect(editDialog.getByLabel("Company ID", { exact: true })).toHaveValue("CID-QA-9001");
+  await editDialog.getByLabel("Company ID", { exact: true }).fill("CID-QA-9002");
+  await editDialog.getByLabel("Laptop or PC", { exact: true }).selectOption("Laptop");
+  await editDialog.getByRole("button", { name: "Save record" }).click();
+  const editedRow = page.getByRole("row", { name: /CID-QA-9002/ });
+  await expect(editedRow.getByRole("cell", { name: "CID-QA-9002", exact: true })).toBeVisible();
+  await expect(editedRow.getByRole("cell", { name: "Laptop", exact: true })).toBeVisible();
+});
+
 test("administration audit trail records HR approvals", async ({ page }) => {
   await login(page);
   await page.goto("/hr");
@@ -122,4 +157,21 @@ test("attendance absence workflow records payroll-impacting absence", async ({ p
   await absenceDialog.getByLabel("Status", { exact: true }).selectOption("Under review");
   await absenceDialog.getByRole("button", { name: "Save record" }).click();
   await expect(page.getByRole("cell", { name: "ABS-QA-001", exact: true })).toBeVisible();
+});
+
+test("service division runs local workflow actions and downloads a service report PDF", async ({ page }) => {
+  await login(page);
+  await page.goto("/service");
+  await page.getByRole("button", { name: "Service Requests" }).click();
+  await expect(page.getByRole("cell", { name: "SRV-2026-0842", exact: true })).toBeVisible();
+  await page.getByRole("checkbox", { name: "Select SRV-2026-0842" }).check();
+  await page.getByRole("button", { name: "Customer check" }).click();
+  await expect(page.getByRole("status")).toContainText("Customer Master checked locally");
+
+  await page.getByRole("button", { name: "Service Reports" }).click();
+  await page.getByRole("checkbox", { name: "Select SRV-RPT-2026-0142" }).check();
+  const downloadPromise = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Download detailed PDF (1)" }).click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toBe("SRV-RPT-2026-0142-detailed.pdf");
 });
