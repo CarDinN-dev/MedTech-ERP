@@ -40,3 +40,22 @@ export const userAccessSchema = z.object({
   Password: z.string().min(8).optional().or(z.literal("")),
   Status: z.enum(["Active", "Invited", "Suspended"])
 });
+
+const assignedStatus = z.enum(["Assigned", "Not Assigned"]);
+const yesNo = z.enum(["Yes", "No"]);
+
+export const accessProvisioningSchema = z.object({
+  "Company ID": z.string().trim().max(80).optional(),
+  "Email Required": yesNo,
+  "Company Car": assignedStatus,
+  Accommodation: assignedStatus,
+  Desk: assignedStatus,
+  Stationery: assignedStatus,
+  Email: assignedStatus,
+  "Business Card": assignedStatus,
+  "Laptop Required": yesNo,
+  "Laptop or PC": z.enum(["Laptop", "PC", "Not Required"]),
+  "Mobile Required": yesNo
+});
+
+export type AccessProvisioningInput = z.infer<typeof accessProvisioningSchema>;
