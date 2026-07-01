@@ -2,7 +2,7 @@ import {
   LayoutDashboard, Banknote, UsersRound, Handshake, Ship, Boxes, ShoppingCart,
   Wrench, FolderKanban, Files, BadgeCheck, ChartNoAxesCombined, Settings, UserCog,
   type LucideIcon, CircleDollarSign, PackageCheck, CalendarClock, AlertTriangle,
-  FileText, ReceiptText, Warehouse, ClipboardList, Truck, ShieldCheck
+  FileText, ReceiptText, Warehouse, ClipboardList, Truck, ShieldCheck, Inbox
 } from "lucide-react";
 
 export type ModuleKey = "finance" | "hr" | "sales" | "shipping" | "inventory" | "procurement" | "service" | "projects" | "documents" | "approvals" | "reports" | "admin";
@@ -15,7 +15,7 @@ export interface ModuleDefinition {
 }
 
 export const navGroups: { label: string; items: NavItem[] }[] = [
-  { label: "OVERVIEW", items: [{ label: "Dashboard", href: "/", icon: LayoutDashboard }] },
+  { label: "OVERVIEW", items: [{ label: "Dashboard", href: "/", icon: LayoutDashboard }, { label: "My Work", href: "/my-work", icon: Inbox, badge: "New" }] },
   { label: "OPERATIONS", items: [
     { label: "Sales & CRM", href: "/sales", icon: Handshake, module: "sales", badge: "12" },
     { label: "Procurement", href: "/procurement", icon: ShoppingCart, module: "procurement", badge: "5" },
@@ -38,7 +38,7 @@ const definitions: Record<ModuleKey, ModuleDefinition> = {
   finance: {
     key: "finance", title: "Finance", subtitle: "Cash flow, receivables and financial control", icon: Banknote, color: "emerald",
     stats: [{ label: "Accounts receivable", value: "QAR 1.24M", delta: "+8.2%" }, { label: "Accounts payable", value: "QAR 486K", delta: "-3.1%" }, { label: "Cash position", value: "QAR 2.86M", delta: "+12.4%" }, { label: "Overdue", value: "QAR 184K", tone: "warning" }],
-    tabs: ["Invoices", "Payments", "Expenses", "Bills", "Chart of accounts"], primaryAction: "New invoice",
+    tabs: ["Customer Invoices", "Vendor Bills", "Payments", "Credit Notes", "Debit Notes", "Chart of Accounts", "Journal Types", "Tax/VAT Setup", "Posting Rules", "Accounting Periods", "Source Document Mapping", "Journals", "Bank Reconciliation Import", "Fixed Assets", "FX Revaluation", "Advance / Progress / Retention Invoices", "Financial Reports"], primaryAction: "New invoice",
     columns: ["Document", "Party", "Issue date", "Due date", "Amount", "Status"],
     rows: [
       { Document: "INV-2026-00481", Party: "Hamad Medical Corporation", "Issue date": "18 Jun 2026", "Due date": "18 Jul 2026", Amount: "QAR 184,500", Status: "Sent" },
@@ -62,7 +62,7 @@ const definitions: Record<ModuleKey, ModuleDefinition> = {
   sales: {
     key: "sales", title: "Sales & CRM", subtitle: "Pipeline, quotations and commercial performance", icon: Handshake, color: "blue",
     stats: [{ label: "Open pipeline", value: "QAR 4.82M", delta: "+14.8%" }, { label: "Weighted value", value: "QAR 2.17M" }, { label: "Win rate", value: "34.6%", delta: "+2.4%" }, { label: "Quotes pending", value: "12", tone: "warning" }],
-    tabs: ["Opportunities", "Quotations", "Orders", "Customers", "Products"], primaryAction: "New quotation",
+    tabs: ["Universal Enquiry Pool", "BANT Qualification", "Lead Claims", "Sales Workflow", "Straight Forward Sales", "GPPRR", "Pharma Tender", "Project Sales", "Estimation / Costing", "Pricing Engine", "Opportunities", "Quotations", "Orders", "Customer Master", "Customers", "Products", "Master Data", "Commissions"], primaryAction: "New enquiry",
     columns: ["Opportunity", "Customer", "Owner", "Value", "Expected close", "Stage"],
     rows: [
       { Opportunity: "ICU Monitoring Upgrade", Customer: "Hamad Medical Corporation", Owner: "F. Al-Kuwari", Value: "QAR 1,240,000", "Expected close": "30 Jun 2026", Stage: "Proposal" },
@@ -74,7 +74,7 @@ const definitions: Record<ModuleKey, ModuleDefinition> = {
   shipping: {
     key: "shipping", title: "Shipping & Logistics", subtitle: "Inbound freight, dispatch and delivery control", icon: Ship, color: "cyan",
     stats: [{ label: "In transit", value: "18" }, { label: "Ready to dispatch", value: "8" }, { label: "Delivered this month", value: "64", delta: "+11%" }, { label: "Delayed", value: "3", tone: "warning" }],
-    tabs: ["Shipments", "Delivery notes", "Packing lists", "Couriers"], primaryAction: "Create shipment",
+    tabs: ["Delivery Orders", "Pick Lists", "Packing Lists", "Shipments", "Partial Deliveries / Backorders", "Proof of Delivery", "Customs / Clearance Documents", "Installation Delivery Handover", "Delivery Exceptions", "Shipping Dashboard"], primaryAction: "Create delivery order",
     columns: ["Shipment", "Direction", "Customer / Supplier", "Carrier", "ETA", "Status"],
     rows: [
       { Shipment: "SHP-2026-0184", Direction: "Inbound", "Customer / Supplier": "Siemens Healthineers", Carrier: "DHL Global", ETA: "22 Jun 2026", Status: "In transit" },
@@ -86,7 +86,7 @@ const definitions: Record<ModuleKey, ModuleDefinition> = {
   inventory: {
     key: "inventory", title: "Inventory & Warehouse", subtitle: "Stock, lots, serials and warehouse movements", icon: Boxes, color: "amber",
     stats: [{ label: "Inventory value", value: "QAR 6.74M", delta: "+3.5%" }, { label: "Active SKUs", value: "2,418" }, { label: "Below minimum", value: "23", tone: "warning" }, { label: "Expiring in 90 days", value: "14", tone: "warning" }],
-    tabs: ["Products", "Stock", "Movements", "Lots & serials", "Adjustments"], primaryAction: "Add product",
+    tabs: ["Products", "Stock On Hand", "Lots / Batches / Serials", "Stock Movements", "Transfers", "Reservations", "Cycle Counts", "Expiry Alerts", "Quarantine / QC", "Engineer Stock", "Bundled Kits"], primaryAction: "Add product",
     columns: ["Product", "SKU", "Category", "On hand", "Available", "Status"],
     rows: [
       { Product: "Patient Monitor MX750", SKU: "EQ-PM-0750", Category: "Equipment", "On hand": "18 units", Available: "12 units", Status: "In stock" },
@@ -98,7 +98,7 @@ const definitions: Record<ModuleKey, ModuleDefinition> = {
   procurement: {
     key: "procurement", title: "Procurement", subtitle: "Requests, sourcing, purchase orders and suppliers", icon: ShoppingCart, color: "orange",
     stats: [{ label: "Open requests", value: "19" }, { label: "RFQs awaiting reply", value: "11" }, { label: "POs this month", value: "QAR 1.38M" }, { label: "Pending approval", value: "5", tone: "warning" }],
-    tabs: ["Purchase requests", "RFQs", "Purchase orders", "Receipts", "Suppliers"], primaryAction: "New purchase request",
+    tabs: ["Purchase Requests", "RFQs", "Supplier Comparison", "Purchase Orders", "Goods Receipts", "Vendor Bills", "PO Documents", "Suppliers", "Supplier Master"], primaryAction: "New purchase request",
     columns: ["Reference", "Supplier", "Buyer", "Order date", "Total", "Status"],
     rows: [
       { Reference: "PO-2026-0128", Supplier: "Siemens Healthineers", Buyer: "M. Said", "Order date": "18 Jun 2026", Total: "QAR 624,000", Status: "Approved" },
@@ -110,31 +110,30 @@ const definitions: Record<ModuleKey, ModuleDefinition> = {
   service: {
     key: "service", title: "Service & Support", subtitle: "Installed base, tickets, maintenance and SLA performance", icon: Wrench, color: "rose",
     stats: [{ label: "Open tickets", value: "27" }, { label: "SLA compliance", value: "96.8%", delta: "+1.2%" }, { label: "PM due this week", value: "14" }, { label: "Critical", value: "3", tone: "warning" }],
-    tabs: ["Tickets", "Installed equipment", "Maintenance", "Warranties", "Engineers"], primaryAction: "New service ticket",
-    columns: ["Ticket", "Equipment", "Customer", "Engineer", "SLA due", "Status"],
+    tabs: ["Service Requests", "Job Pool", "Engineer Dispatch", "Field Service Jobs", "Spare Parts Requests", "AMC Contracts", "Maintenance Schedules", "Service Reports", "Customer Sign-Off", "Service Invoicing Drafts"], primaryAction: "New service request",
+    columns: ["Request No", "Source", "Customer", "Equipment", "Priority", "Status"],
     rows: [
-      { Ticket: "SRV-2026-0842", Equipment: "CT Injector System", Customer: "Hamad Medical Corporation", Engineer: "N. Kumar", "SLA due": "Today, 14:30", Status: "In progress" },
-      { Ticket: "SRV-2026-0839", Equipment: "Blood Gas Analyzer", Customer: "Sidra Medicine", Engineer: "A. Joseph", "SLA due": "Today, 17:00", Status: "Awaiting part" },
-      { Ticket: "SRV-2026-0835", Equipment: "Patient Monitor MX750", Customer: "Aman Hospital", Engineer: "S. Khan", "SLA due": "21 Jun 2026", Status: "Scheduled" },
-      { Ticket: "SRV-2026-0828", Equipment: "Centrifuge X4", Customer: "Doha Clinic", Engineer: "N. Kumar", "SLA due": "19 Jun 2026", Status: "Resolved" }
+      { "Request No": "SRV-2026-0842", Source: "Phone", Customer: "Hamad Medical Corporation", Equipment: "CT Injector System", Priority: "Critical", Status: "SLA started" },
+      { "Request No": "SRV-2026-0839", Source: "Email", Customer: "Sidra Medicine", Equipment: "Blood Gas Analyzer", Priority: "High", Status: "Pending spare parts" },
+      { "Request No": "SRV-2026-0835", Source: "Manual", Customer: "Aman Hospital", Equipment: "Patient Monitor MX750", Priority: "Normal", Status: "Visit scheduled" }
     ]
   },
   projects: {
     key: "projects", title: "Turnkey Projects", subtitle: "Healthcare project delivery, milestones and profitability", icon: FolderKanban, color: "indigo",
     stats: [{ label: "Active projects", value: "12" }, { label: "Contract value", value: "QAR 18.6M" }, { label: "Average margin", value: "22.4%" }, { label: "Milestones at risk", value: "4", tone: "warning" }],
-    tabs: ["Projects", "Milestones", "Tasks", "Budgets", "Documents"], primaryAction: "New project",
-    columns: ["Project", "Client", "Manager", "Completion", "Budget", "Status"],
+    tabs: ["Projects", "Project Tasks", "Milestones", "Department Sub-Quotations", "Budgets", "Deliverables", "Milestone Billing", "Retention Tracking", "Project Documents", "Project Closure"], primaryAction: "New project",
+    columns: ["Project No", "Customer", "Business Unit", "Project Type", "Manager", "Start Date", "End Date", "Contract Value", "Budget", "Actual Cost", "Margin", "Status"],
     rows: [
-      { Project: "Al Wakra Day Surgery Center", Client: "Private Healthcare Group", Manager: "K. Varghese", Completion: "72%", Budget: "QAR 4.8M", Status: "On track" },
-      { Project: "National Reference Lab Expansion", Client: "Ministry of Public Health", Manager: "S. Rahman", Completion: "44%", Budget: "QAR 6.2M", Status: "At risk" },
-      { Project: "ICU Modernization – Phase II", Client: "Hamad Medical Corporation", Manager: "K. Varghese", Completion: "88%", Budget: "QAR 3.1M", Status: "On track" },
-      { Project: "Dental Center Fit-out", Client: "Pearl Medical Center", Manager: "T. George", Completion: "29%", Budget: "QAR 1.7M", Status: "Planning" }
+      { "Project No": "PRJ-2026-0018", Customer: "Private Healthcare Group", "Business Unit": "Projects", "Project Type": "Turnkey fit-out", Manager: "K. Varghese", "Start Date": "2026-06-01", "End Date": "2026-09-30", "Contract Value": "QAR 4,800,000", Budget: "QAR 3,724,800", "Actual Cost": "QAR 3,100,000", Margin: "QAR 1,700,000 / 35.4%", Status: "On track" },
+      { "Project No": "PRJ-2026-0019", Customer: "Ministry of Public Health", "Business Unit": "Projects", "Project Type": "Reference lab expansion", Manager: "S. Rahman", "Start Date": "2026-06-10", "End Date": "2026-12-15", "Contract Value": "QAR 6,200,000", Budget: "QAR 4,812,000", "Actual Cost": "QAR 3,800,000", Margin: "QAR 2,400,000 / 38.7%", Status: "Milestone at risk" },
+      { "Project No": "PRJ-2026-0014", Customer: "Hamad Medical Corporation", "Business Unit": "Medical Equipment", "Project Type": "ICU modernization", Manager: "K. Varghese", "Start Date": "2026-03-15", "End Date": "2026-07-10", "Contract Value": "QAR 3,100,000", Budget: "QAR 2,480,000", "Actual Cost": "QAR 2,700,000", Margin: "QAR 400,000 / 12.9%", Status: "Budget watch" },
+      { "Project No": "PRJ-2026-0020", Customer: "Pearl Medical Center", "Business Unit": "Projects", "Project Type": "Dental center fit-out", Manager: "T. George", "Start Date": "2026-06-20", "End Date": "2026-10-25", "Contract Value": "QAR 1,700,000", Budget: "QAR 1,292,000", "Actual Cost": "QAR 410,000", Margin: "QAR 1,290,000 / 75.9%", Status: "Planning" }
     ]
   },
   documents: {
     key: "documents", title: "Document Center", subtitle: "Secure, versioned records across the organization", icon: Files, color: "sky",
     stats: [{ label: "Total documents", value: "8,642" }, { label: "Added this month", value: "286" }, { label: "Expiring soon", value: "18", tone: "warning" }, { label: "Storage used", value: "42.8 GB" }],
-    tabs: ["All documents", "Customers", "Employees", "Suppliers", "Products"], primaryAction: "Upload document",
+    tabs: ["All documents", "Template List", "Generated Documents", "Customers", "Employees", "Suppliers", "Products"], primaryAction: "Upload document",
     columns: ["Document", "Category", "Related to", "Owner", "Updated", "Access"],
     rows: [
       { Document: "ISO 13485 Certificate.pdf", Category: "Certificate", "Related to": "MedTech Corporation", Owner: "Quality Team", Updated: "18 Jun 2026", Access: "Company" },
@@ -146,7 +145,7 @@ const definitions: Record<ModuleKey, ModuleDefinition> = {
   approvals: {
     key: "approvals", title: "Approvals", subtitle: "One controlled queue for business decisions", icon: BadgeCheck, color: "teal",
     stats: [{ label: "Awaiting my action", value: "7" }, { label: "Due today", value: "3", tone: "warning" }, { label: "Approved this month", value: "84" }, { label: "Average cycle", value: "6.4 hrs", delta: "-18%" }],
-    tabs: ["My approvals", "Submitted by me", "Completed", "Workflow rules"], primaryAction: "New request",
+    tabs: ["My approvals", "Submitted by me", "Completed", "Workflow rules", "Approval Matrix"], primaryAction: "New request",
     columns: ["Request", "Type", "Requested by", "Submitted", "Amount / Impact", "Status"],
     rows: [
       { Request: "QTN-2026-0314", Type: "Quotation discount", "Requested by": "F. Al-Kuwari", Submitted: "2 hours ago", "Amount / Impact": "18.0% discount", Status: "Your approval" },
@@ -158,7 +157,7 @@ const definitions: Record<ModuleKey, ModuleDefinition> = {
   reports: {
     key: "reports", title: "Reports & Analytics", subtitle: "Cross-functional performance and compliance reporting", icon: ChartNoAxesCombined, color: "purple",
     stats: [{ label: "Saved reports", value: "38" }, { label: "Scheduled", value: "12" }, { label: "Exports this month", value: "146" }, { label: "Data refreshed", value: "2 min ago" }],
-    tabs: ["All reports", "Finance", "Commercial", "Operations", "People"], primaryAction: "Build report",
+    tabs: ["Executive KPIs", "All reports", "Finance", "Commercial", "Operations", "People", "Integration Simulators"], primaryAction: "Build report",
     columns: ["Report", "Area", "Owner", "Last run", "Schedule", "Format"],
     rows: [
       { Report: "Monthly P&L by Department", Area: "Finance", Owner: "Finance Team", "Last run": "Today, 08:00", Schedule: "Monthly", Format: "PDF / Excel" },
@@ -170,7 +169,7 @@ const definitions: Record<ModuleKey, ModuleDefinition> = {
   admin: {
     key: "admin", title: "Administration", subtitle: "Company, users, access and system configuration", icon: Settings, color: "slate",
     stats: [{ label: "Active users", value: "92" }, { label: "Defined roles", value: "13" }, { label: "Active sessions", value: "38" }, { label: "Security events", value: "0" }],
-    tabs: ["Users", "Roles & permissions", "Company", "Numbering", "Audit log"], primaryAction: "Invite user",
+    tabs: ["Users", "Roles & permissions", "Company", "Master Setup", "Business Units", "Departments", "Cost Centers", "Document Sequences", "Approval Thresholds", "Currencies", "Payment Terms", "Workflow Statuses", "Numbering", "Automation Monitor", "Data Import Center", "Migration Reconciliation", "UAT Tracker", "Audit log"], primaryAction: "Invite user",
     columns: ["User", "Email", "Role", "Department", "Last active", "Status"],
     rows: [
       { User: "Kashif", Email: "admin@medtech.qa", Role: "Super Admin", Department: "Executive", "Last active": "Now", Status: "Active", Password: "MedTech@2026" },
