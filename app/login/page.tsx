@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, KeyRound, LockKeyhole, Mail, ShieldCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { DEFAULT_DEMO_EMAIL, DEFAULT_DEMO_PASSWORD, signInDemo } from "@/lib/demo-auth";
 import { appendAuditLog } from "@/lib/audit-store";
+import { safeLocalPath } from "@/lib/security";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -38,10 +40,12 @@ export default function LoginPage() {
       }
 
       const next = new URLSearchParams(window.location.search).get("next");
-      router.replace(next?.startsWith("/") ? next : "/");
+      router.replace(safeLocalPath(next));
       router.refresh();
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Unable to sign in");
+      const message = caught instanceof Error ? caught.message : "Unable to sign in";
+      appendAuditLog({ action: "LOGIN", module: "Authentication", record: email.trim() || "unknown user", details: message, result: "failure", severity: "high", user: email.trim() || "unknown user", role: "Unknown" });
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -51,7 +55,7 @@ export default function LoginPage() {
     <section className="relative hidden overflow-hidden bg-[#142630] p-12 text-white lg:flex lg:flex-col">
       <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "radial-gradient(circle at 15% 25%, #2dd4bf 0, transparent 28%), radial-gradient(circle at 90% 80%, #3b82f6 0, transparent 30%)" }} />
       <div className="relative flex items-center gap-3">
-        <div className="grid h-16 w-16 place-items-center overflow-hidden rounded-xl bg-white"><img src="/brand-mark.svg?v=2" alt="MedTech" className="h-14 w-14 object-contain" /></div>
+        <div className="grid h-16 w-16 place-items-center overflow-hidden rounded-xl bg-white"><Image src="/brand-mark.svg?v=2" alt="MedTech" width={56} height={56} priority className="h-14 w-14 object-contain" /></div>
         <div><div className="text-lg font-bold">MedTech <span className="text-teal-400">ERP</span></div><div className="text-[10px] tracking-[.18em] text-slate-400">CORPORATION TRADING</div></div>
       </div>
       <div className="relative my-auto max-w-xl">
@@ -66,7 +70,7 @@ export default function LoginPage() {
     </section>
     <section className="flex items-center justify-center p-6">
       <div className="w-full max-w-[420px]">
-        <div className="mb-9 lg:hidden"><div className="inline-flex items-center gap-2"><div className="grid h-11 w-11 place-items-center overflow-hidden rounded-xl bg-white"><img src="/brand-mark.svg?v=2" alt="MedTech" className="h-10 w-10 object-contain" /></div><b>MedTech ERP</b></div></div>
+        <div className="mb-9 lg:hidden"><div className="inline-flex items-center gap-2"><div className="grid h-11 w-11 place-items-center overflow-hidden rounded-xl bg-white"><Image src="/brand-mark.svg?v=2" alt="MedTech" width={40} height={40} priority className="h-10 w-10 object-contain" /></div><b>MedTech ERP</b></div></div>
         <div className="mb-8">
           <div className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-teal-50 px-2.5 py-1 text-[10px] font-bold text-teal-700 dark:bg-teal-950/50 dark:text-teal-300"><KeyRound className="h-3.5 w-3.5" /> {demoMode ? "CLIENT DEMO LOGIN" : "SECURE LOGIN"}</div>
           <h2 className="text-3xl font-bold tracking-tight">Welcome back</h2>
