@@ -1,14 +1,22 @@
 import type { ModuleDefinition } from "@/lib/erp-data";
+import { masterDataViews } from "@/lib/master-data";
+import { medtechScopeViews } from "@/lib/medtech-scope-data";
+import { salesCrmViews } from "@/lib/sales-crm";
+import { rolePermissionRows } from "@/lib/erp-security";
+import { getFinanceView } from "@/lib/finance-workflow";
+import { getShippingView } from "@/lib/shipping-workflow";
 
 export interface DemoTabView { columns: string[]; rows: Array<Record<string, string>>; }
 
 const view = (columns: string[], rows: Array<Record<string, string>>): DemoTabView => ({ columns, rows });
 
 const alternateViews: Record<string, DemoTabView> = {
-  "finance.Payments": view(["Payment", "Type", "Party", "Date", "Method", "Amount", "Status"], [
-    { Payment: "REC-2026-00192", Type: "Receipt", Party: "Sidra Medicine", Date: "19 Jun 2026", Method: "Bank transfer", Amount: "QAR 64,000", Status: "Posted" },
-    { Payment: "PAY-2026-00188", Type: "Supplier payment", Party: "BD Biosciences", Date: "18 Jun 2026", Method: "Bank transfer", Amount: "QAR 186,400", Status: "Approved" },
-    { Payment: "REC-2026-00184", Type: "Receipt", Party: "Al Ahli Hospital", Date: "17 Jun 2026", Method: "Cheque", Amount: "QAR 52,800", Status: "Cleared" }
+  ...medtechScopeViews,
+  ...masterDataViews,
+  ...salesCrmViews,
+  "finance.Payments": view(["Payment No", "Type", "Party", "Date", "Method", "Amount", "Currency", "Matched To", "Status"], [
+    { "Payment No": "REC-2026-00192", Type: "Customer payment", Party: "Sidra Medicine", Date: "2026-06-19", Method: "Local simulator", Amount: "QAR 18,000", Currency: "QAR", "Matched To": "AMC-INV-DRAFT-0038", Status: "Matched" },
+    { "Payment No": "PAY-2026-00188", Type: "Vendor payment", Party: "BD Biosciences", Date: "2026-06-18", Method: "Local simulator", Amount: "QAR 186,400", Currency: "QAR", "Matched To": "", Status: "Draft" }
   ]),
   "finance.Expenses": view(["Expense", "Employee", "Category", "Date", "Amount", "Status"], [
     { Expense: "EXP-2026-00448", Employee: "K. Varghese", Category: "Project site works", Date: "19 Jun 2026", Amount: "QAR 12,480", Status: "Pending approval" },
@@ -47,10 +55,10 @@ const alternateViews: Record<string, DemoTabView> = {
     { Letter: "HRL-2026-0084", Employee: "R. Mathew", Type: "Employment letter", Issued: "12 Jun 2026", "Prepared by": "HR Team", Status: "Sent" }
   ]),
 
-  "sales.Quotations": view(["Quotation", "Customer", "Owner", "Date", "Total", "Status"], [
-    { Quotation: "QTN-2026-00314", Customer: "Hamad Medical Corporation", Owner: "F. Al-Kuwari", Date: "20 Jun 2026", Total: "QAR 286,000", Status: "Pending approval" },
-    { Quotation: "QTN-2026-00311", Customer: "Sidra Medicine", Owner: "R. Mathew", Date: "18 Jun 2026", Total: "QAR 680,000", Status: "Sent" },
-    { Quotation: "QTN-2026-00308", Customer: "Doha Clinic", Owner: "F. Al-Kuwari", Date: "15 Jun 2026", Total: "QAR 94,600", Status: "Accepted" }
+  "sales.Quotations": view(["Quotation", "Customer", "Owner", "Date", "Total", "Costing Sheet No", "Status"], [
+    { Quotation: "QTN-2026-00314", Customer: "Hamad Medical Corporation", Owner: "F. Al-Kuwari", Date: "20 Jun 2026", Total: "QAR 286,000", "Costing Sheet No": "CST-2026-0001", Status: "Pending approval" },
+    { Quotation: "QTN-2026-00311", Customer: "Sidra Medicine", Owner: "R. Mathew", Date: "18 Jun 2026", Total: "QAR 680,000", "Costing Sheet No": "CST-2026-0004", Status: "Sent" },
+    { Quotation: "QTN-2026-00308", Customer: "Doha Clinic", Owner: "F. Al-Kuwari", Date: "15 Jun 2026", Total: "QAR 94,600", "Costing Sheet No": "", Status: "Draft" }
   ]),
   "sales.Orders": view(["Order", "Customer", "Customer PO", "Order date", "Total", "Status"], [
     { Order: "SO-2026-00218", Customer: "Doha Clinic", "Customer PO": "DC/PO/8821", "Order date": "18 Jun 2026", Total: "QAR 286,000", Status: "Confirmed" },
@@ -102,7 +110,7 @@ const alternateViews: Record<string, DemoTabView> = {
     { Adjustment: "STK-ADJ-0089", Location: "Returns & Damaged", Reason: "Damaged in transit", Lines: "2", "Value impact": "-QAR 1,860", Status: "Approved" }
   ]),
 
-  "procurement.RFQs": view(["RFQ", "Supplier", "Issue date", "Due date", "Quoted total", "Status"], [
+  "procurement.Legacy RFQs": view(["RFQ", "Supplier", "Issue date", "Due date", "Quoted total", "Status"], [
     { RFQ: "RFQ-2026-00148", Supplier: "Thermo Fisher", "Supplier contact": "Regional Sales Desk · qatar@thermofisher.com", Buyer: "M. Said", Department: "Procurement", "Issue date": "18 Jun 2026", "Due date": "23 Jun 2026", Currency: "QAR", "Quoted total": "QAR 94,750", "Delivery terms": "DAP MedTech Main Warehouse, Doha", "Payment terms": "30 days from invoice", Scope: "Laboratory reagents and cold-chain consumables", "Technical requirements": "Original manufacturer supply, minimum 12-month shelf life, certificates of analysis with delivery", Notes: "Commercial and technical response received; pending final evaluation.", Status: "Response received" },
     { RFQ: "RFQ-2026-00145", Supplier: "BD Biosciences", "Supplier contact": "Gulf Commercial Team · mena@bdbiosciences.com", Buyer: "O. Nasser", Department: "Procurement", "Issue date": "16 Jun 2026", "Due date": "21 Jun 2026", Currency: "QAR", "Quoted total": "QAR 186,400", "Delivery terms": "CIP Hamad International Airport, Doha", "Payment terms": "40% advance, 60% on delivery", Scope: "Flow cytometry reagents, controls and accessories", "Technical requirements": "CE-marked products, lot traceability, temperature logger and product datasheets required", Notes: "Technical evaluation in progress with Diagnostics division.", Status: "Under evaluation" }
   ]),
@@ -142,26 +150,6 @@ const alternateViews: Record<string, DemoTabView> = {
     { Engineer: "S. Khan", Specialization: "Patient monitoring", "Open tickets": "5", "PM this week": "5", "SLA score": "97.1%", Status: "Available" }
   ]),
 
-  "projects.Milestones": view(["Milestone", "Project", "Due date", "Value", "Completion", "Status"], [
-    { Milestone: "Equipment delivery", Project: "Al Wakra Day Surgery Center", "Due date": "30 Jun 2026", Value: "QAR 1.2M", Completion: "82%", Status: "On track" },
-    { Milestone: "Lab commissioning", Project: "National Reference Lab Expansion", "Due date": "12 Jul 2026", Value: "QAR 1.8M", Completion: "44%", Status: "At risk" },
-    { Milestone: "Final handover", Project: "ICU Modernization – Phase II", "Due date": "25 Jun 2026", Value: "QAR 620K", Completion: "88%", Status: "On track" }
-  ]),
-  "projects.Tasks": view(["Task", "Project", "Assignee", "Due date", "Priority", "Status"], [
-    { Task: "Validate room layouts", Project: "Al Wakra Day Surgery Center", Assignee: "K. Varghese", "Due date": "22 Jun 2026", Priority: "High", Status: "In progress" },
-    { Task: "Submit electrical load schedule", Project: "Reference Lab Expansion", Assignee: "T. George", "Due date": "20 Jun 2026", Priority: "Critical", Status: "Blocked" },
-    { Task: "Client user training", Project: "ICU Modernization – Phase II", Assignee: "N. Kumar", "Due date": "24 Jun 2026", Priority: "Medium", Status: "Scheduled" }
-  ]),
-  "projects.Budgets": view(["Project", "Budget", "Committed", "Actual", "Remaining", "Status"], [
-    { Project: "Al Wakra Day Surgery Center", Budget: "QAR 4.8M", Committed: "QAR 3.4M", Actual: "QAR 3.1M", Remaining: "QAR 1.7M", Status: "Within budget" },
-    { Project: "Reference Lab Expansion", Budget: "QAR 6.2M", Committed: "QAR 4.9M", Actual: "QAR 3.8M", Remaining: "QAR 2.4M", Status: "Watch" },
-    { Project: "ICU Modernization – Phase II", Budget: "QAR 3.1M", Committed: "QAR 2.9M", Actual: "QAR 2.7M", Remaining: "QAR 400K", Status: "Within budget" }
-  ]),
-  "projects.Documents": view(["Document", "Project", "Category", "Version", "Updated", "Status"], [
-    { Document: "Approved Scope of Work.pdf", Project: "Al Wakra Day Surgery Center", Category: "Contract", Version: "3.0", Updated: "18 Jun 2026", Status: "Approved" },
-    { Document: "Lab Equipment Layout.dwg", Project: "Reference Lab Expansion", Category: "Design", Version: "6.2", Updated: "17 Jun 2026", Status: "Under review" },
-    { Document: "Handover Checklist.xlsx", Project: "ICU Modernization – Phase II", Category: "Handover", Version: "1.4", Updated: "19 Jun 2026", Status: "Draft" }
-  ]),
 
   "documents.Customers": view(["Document", "Customer", "Category", "Version", "Updated", "Access"], [
     { Document: "HMC Framework Agreement.pdf", Customer: "Hamad Medical Corporation", Category: "Contract", Version: "4.0", Updated: "12 Jun 2026", Access: "Restricted" },
@@ -217,12 +205,7 @@ const alternateViews: Record<string, DemoTabView> = {
     { Report: "Headcount by Department", Period: "As of 20 Jun", Owner: "HR Team", "Last run": "Today, 08:30", Schedule: "Weekly", Format: "PDF / Excel" }
   ]),
 
-  "admin.Roles & permissions": view(["Role", "Users", "Modules", "Approval rights", "Last changed", "Status"], [
-    { Role: "Management", Users: "4", Modules: "All modules", "Approval rights": "High-value transactions", "Last changed": "12 Jun 2026", Status: "Active" },
-    { Role: "Finance Manager", Users: "3", Modules: "Finance, Reports", "Approval rights": "Payments, bills, expenses", "Last changed": "08 Jun 2026", Status: "Active" },
-    { Role: "Sales Executive", Users: "14", Modules: "Sales, Customers, Products", "Approval rights": "None", "Last changed": "02 Jun 2026", Status: "Active" },
-    { Role: "Read-only Auditor", Users: "2", Modules: "All approved records", "Approval rights": "None", "Last changed": "28 May 2026", Status: "Active" }
-  ]),
+  "admin.Roles & permissions": view(["Role", "Users", "Modules", "Approval rights", "Permissions", "Last changed", "Status"], rolePermissionRows()),
   "admin.Company": view(["Setting", "Value", "Category", "Updated by", "Updated", "Status"], [
     { Setting: "Legal name", Value: "MedTech Corporation Trading W.L.L.", Category: "Company", "Updated by": "Super Admin", Updated: "10 Jun 2026", Status: "Configured" },
     { Setting: "Default currency", Value: "QAR", Category: "Finance", "Updated by": "Finance Manager", Updated: "08 Jun 2026", Status: "Configured" },
@@ -237,5 +220,7 @@ const alternateViews: Record<string, DemoTabView> = {
 };
 
 export function getDemoTabView(module: ModuleDefinition, tab: string): DemoTabView {
+  if (module.key === "finance") return getFinanceView(tab) ?? { columns: module.columns, rows: module.rows };
+  if (module.key === "shipping") return getShippingView(tab) ?? { columns: module.columns, rows: module.rows };
   return alternateViews[`${module.key}.${tab}`] ?? { columns: module.columns, rows: module.rows };
 }
