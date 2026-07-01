@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { statusTone } from "@/lib/local-erp-foundation";
 import { ChevronDown, Search, SlidersHorizontal } from "lucide-react";
 
 export function Button({ children, variant = "primary", className, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "secondary" | "ghost" | "danger" }) {
@@ -15,13 +16,13 @@ export function Button({ children, variant = "primary", className, ...props }: R
 
 export function StatusBadge({ children }: { children: React.ReactNode }) {
   const value = String(children).toLowerCase();
-  const tone = value.includes("paid") || value.includes("active") || value.includes("approved") || value.includes("delivered") || value.includes("resolved") || value.includes("won") || value.includes("on track") || value.includes("in stock") || value.includes("verified") || value.includes("rejoined_on_time")
-    ? "bg-emerald-50 text-emerald-700 ring-emerald-600/20 dark:bg-emerald-950/50 dark:text-emerald-300"
-    : value.includes("overdue") || value.includes("critical") || value.includes("risk") || value.includes("hold") || value.includes("reorder") || value.includes("rejected") || value.includes("cancelled") || value.includes("no_show")
-      ? "bg-rose-50 text-rose-700 ring-rose-600/20 dark:bg-rose-950/50 dark:text-rose-300"
-      : value.includes("pending") || value.includes("leave") || value.includes("low") || value.includes("awaiting") || value.includes("partial") || value.includes("your approval") || value.includes("delayed_rejoin")
-        ? "bg-amber-50 text-amber-700 ring-amber-600/20 dark:bg-amber-950/50 dark:text-amber-300"
-        : "bg-blue-50 text-blue-700 ring-blue-600/20 dark:bg-blue-950/50 dark:text-blue-300";
+  const palette = {
+    success: "bg-emerald-50 text-emerald-700 ring-emerald-600/20 dark:bg-emerald-950/50 dark:text-emerald-300",
+    warning: "bg-amber-50 text-amber-700 ring-amber-600/20 dark:bg-amber-950/50 dark:text-amber-300",
+    danger: "bg-rose-50 text-rose-700 ring-rose-600/20 dark:bg-rose-950/50 dark:text-rose-300",
+    info: "bg-blue-50 text-blue-700 ring-blue-600/20 dark:bg-blue-950/50 dark:text-blue-300"
+  };
+  const tone = palette[statusTone(value)];
   return <span className={cn("inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ring-inset", tone)}><span className="h-1.5 w-1.5 rounded-full bg-current opacity-75" />{children}</span>;
 }
 
