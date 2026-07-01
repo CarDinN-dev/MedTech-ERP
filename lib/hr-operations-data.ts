@@ -92,20 +92,22 @@ export const leaveViews: Record<string, HrOperationalView> = {
     { Policy: "POL-ANNUAL", "Leave type": "Annual leave", Entitlement: "30 days", Accrual: "Monthly", "Carry forward": "10 days", "Document required": "No", Encashment: "Management approval", Status: "Active" },
     { Policy: "POL-SICK", "Leave type": "Sick leave", Entitlement: "14 days", Accrual: "Annual", "Carry forward": "0", "Document required": "Yes", Encashment: "No", Status: "Active" }
   ], selectOptions: { Status: ["Draft", "Active", "Inactive"] } },
-  "Annual Planner": { primaryAction: "Plan annual leave", helper: "Plan team leave early, identify overlaps and defer dates before formal application.", columns: ["Plan", "Employee", "Department", "From", "To", "Days", "Coverage", "Status"], rows: [
-    { Plan: "LVP-2026-0088", Employee: "Fahad Al-Kuwari", Department: "Sales", From: "02 Aug 2026", To: "13 Aug 2026", Days: "12", Coverage: "Sales Manager", Status: "Approved" }
-  ], selectOptions: { Status: ["Planned", "Submitted", "Approved", "Deferred", "Cancelled"] } },
+  "Annual Planner": { primaryAction: "Plan annual leave", helper: "Plan team leave visibility by department before formal application approval.", columns: ["Plan", "Employee Code", "Employee", "Department", "Leave type", "From", "To", "Days", "Status"], rows: [
+    { Plan: "LVP-2026-0088", "Employee Code": "MT-0018", Employee: "Fahad Al-Kuwari", Department: "Sales", "Leave type": "Annual leave", From: "02 Aug 2026", To: "13 Aug 2026", Days: "12", Status: "Planned" },
+    { Plan: "LVP-2026-0091", "Employee Code": "MT-0041", Employee: "Naveen Kumar", Department: "Service", "Leave type": "Annual leave", From: "20 Jun 2026", To: "24 Jun 2026", Days: "5", Status: "Planned" },
+    { Plan: "LVP-2026-0092", "Employee Code": "MT-0064", Employee: "Leila D'Souza", Department: "Human Resources", "Leave type": "Emergency leave", From: "25 Jun 2026", To: "26 Jun 2026", Days: "2", Status: "Planned" }
+  ], selectOptions: { "Leave type": ["Annual leave", "Sick leave", "Emergency leave", "Unpaid leave", "Maternity leave", "Compassionate leave"], Status: ["Planned", "Applied", "Approved", "Rejected"] }, defaultValues: { Plan: "Auto generated", "Leave type": "Annual leave", Days: "1", Status: "Planned" } },
   Applications: {
     primaryAction: "Apply leave",
     helper: "Capture leave period, contact details, travel route, handover and approval routing.",
-    columns: ["Request", "Employee Code", "Employee", "Leave type", "From", "To", "Days", "Balance", "Handover to", "Contact", "Status"],
-    formColumns: ["Request", "Employee Code", "Employee", "Department", "Designation", "Date of Employment", "Leave type", "From", "To", "Days", "Balance", "Purpose", "Destination", "Travel from", "Travel to", "Handover to", "Contact", "Email", "Status"],
+    columns: ["Request", "Employee Code", "Employee", "Department", "Leave type", "From", "To", "Days", "Available balance", "Remaining balance", "Handover to", "Clearance status", "Status"],
+    formColumns: ["Request", "Employee Code", "Employee", "Department", "Designation", "Date of Employment", "Leave type", "From", "To", "Days", "Available balance", "Remaining balance", "Purpose", "Destination", "Travel from", "Travel to", "Handover to code", "Handover to", "Handover notes / tasks", "Clearance checklist", "Clearance status", "Contact", "Email", "Status"],
     rows: [
-      { Request: "LV-2026-00128", "Employee Code": "MT-0041", Employee: "Naveen Kumar", Department: "Service", Designation: "Biomedical Engineer", "Date of Employment": "17 Jan 2023", "Leave type": "Annual leave", From: "20 Jun 2026", To: "24 Jun 2026", Days: "5", Balance: "17 days", Purpose: "Annual vacation", Destination: "Bangalore", "Travel from": "Doha", "Travel to": "BLR", "Handover to": "Service Manager", Contact: "+974 5539 8420", Email: "n.kumar@medtech.qa", Status: "Approved" },
-      { Request: "LV-2026-00131", "Employee Code": "MT-0053", Employee: "Mariam Said", Department: "Procurement", Designation: "Procurement Officer", "Date of Employment": "08 Nov 2024", "Leave type": "Sick leave", From: "22 Jun 2026", To: "22 Jun 2026", Days: "1", Balance: "12 days", Purpose: "Medical leave", Destination: "Doha", "Travel from": "Doha", "Travel to": "Doha", "Handover to": "Procurement Manager", Contact: "+974 6681 3004", Email: "m.said@medtech.qa", Status: "Pending approval" }
+      { Request: "LV-2026-00128", "Employee Code": "MT-0041", Employee: "Naveen Kumar", Department: "Service", Designation: "Biomedical Engineer", "Date of Employment": "17 Jan 2023", "Leave type": "Annual leave", From: "20 Jun 2026", To: "24 Jun 2026", Days: "5", "Available balance": "22 days", "Remaining balance": "17 days", Balance: "17 days", Purpose: "Annual vacation", Destination: "Bangalore", "Travel from": "Doha", "Travel to": "BLR", "Handover to code": "MT-0064", "Handover to": "Leila D'Souza", "Handover notes / tasks": "PM visits: HMC Lab. Service laptop and toolkit assigned.", "Clearance checklist": "Service schedule covered; equipment handover confirmed", "Clearance status": "cleared", Contact: "+974 5539 8420", Email: "n.kumar@medtech.qa", Status: "Approved" },
+      { Request: "LV-2026-00131", "Employee Code": "MT-0053", Employee: "Mariam Said", Department: "Procurement", Designation: "Procurement Officer", "Date of Employment": "08 Nov 2024", "Leave type": "Sick leave", From: "22 Jun 2026", To: "22 Jun 2026", Days: "1", "Available balance": "13 days", "Remaining balance": "12 days", Balance: "12 days", Purpose: "Medical leave", Destination: "Doha", "Travel from": "Doha", "Travel to": "Doha", "Handover to code": "MT-0072", "Handover to": "Omar Nasser", "Handover notes / tasks": "Share procurement inbox and urgent supplier follow-ups.", "Clearance checklist": "Manager review pending", "Clearance status": "pending", Contact: "+974 6681 3004", Email: "m.said@medtech.qa", Status: "Pending approval" }
     ],
-    selectOptions: { "Leave type": ["Annual leave", "Sick leave", "Emergency leave", "Unpaid leave", "Maternity leave", "Compassionate leave"], Status: ["Draft", "Submitted", "Pending approval", "Manager review", "HR review", "Approved", "Rejected", "Cancelled"] },
-    defaultValues: { Request: "Auto generated", Status: "Draft", "Leave type": "Annual leave", Days: "1", Balance: "30 days" }
+    selectOptions: { "Leave type": ["Annual leave", "Sick leave", "Emergency leave", "Unpaid leave", "Maternity leave", "Compassionate leave"], "Clearance status": ["pending", "cleared", "not required"], Status: ["Draft", "Submitted", "Pending approval", "Manager review", "HR review", "Approved", "Rejected", "Cancelled"] },
+    defaultValues: { Request: "Auto generated", Status: "Draft", "Leave type": "Annual leave", Days: "1", "Available balance": "0 days", "Remaining balance": "0 days", Balance: "0 days", "Clearance status": "pending" }
   },
   Approvals: {
     primaryAction: "Record decision",
@@ -117,7 +119,7 @@ export const leaveViews: Record<string, HrOperationalView> = {
     ],
     selectOptions: { Status: ["Pending approval", "Approved", "Rejected", "Pending more information"] }
   },
-  "Job Handover": {
+  "Leave Handover": {
     primaryAction: "Create handover",
     helper: "Track duties and notes handed over for submitted or approved leave applications.",
     columns: ["Request", "Employee Code", "Employee", "Leave dates", "Handover to code", "Handover to", "Tasks / notes", "Status", "Accepted at"],
