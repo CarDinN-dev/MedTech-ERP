@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowDown, ArrowUp, ArrowUpDown, Banknote, BriefcaseBusiness, CalendarDays, Check, CheckCircle2,
-  ChevronDown, ChevronRight, CircleDollarSign, Clock3, Download, Ellipsis, FileDown, FileText, FolderLock,
+  ChevronDown, ChevronRight, CircleDollarSign, Download, Ellipsis, FileDown, FileText, FolderLock,
   Landmark, Search, ShieldCheck, Upload, UserPlus, UsersRound, X
 } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
@@ -17,9 +17,10 @@ import { useDemoRecords, type DemoRecord } from "@/lib/demo-store";
 import { exportToExcel, parseExcel } from "@/lib/export/excel";
 import { employeeImportColumns, employeeProfileSections, normalizeEmployeeRow } from "@/lib/hr-employee-fields";
 import { hrAttendanceTrend, hrDepartmentHeadcount, hrEmployees, hrPayrollTrend, hrTabs, hrViews, type HrTab } from "@/lib/hr-data";
+import { finalSettlementPayable, qar } from "@/lib/hr-extensions";
 import type { PdfTemplate } from "@/lib/pdf/generator";
 import { cn } from "@/lib/utils";
-import { employeeOnboardingSchema } from "@/lib/validation";
+import { accessProvisioningSchema, employeeOnboardingSchema } from "@/lib/validation";
 
 const kpis = [
   { label: "Total employees", value: "126", note: "+4 this month", icon: UsersRound, tone: "teal" },
@@ -29,6 +30,7 @@ const kpis = [
   { label: "Expiring documents", value: "6", note: "Within 30 days", icon: FolderLock, tone: "rose" }
 ];
 const toneClasses: Record<string, string> = { teal: "bg-teal-50 text-teal-700 dark:bg-teal-950/50", blue: "bg-blue-50 text-blue-700 dark:bg-blue-950/50", amber: "bg-amber-50 text-amber-700 dark:bg-amber-950/50", violet: "bg-violet-50 text-violet-700 dark:bg-violet-950/50", rose: "bg-rose-50 text-rose-700 dark:bg-rose-950/50" };
+const employeeLinkedTabs = new Set<HrTab>(["Contracts", "Probation Reviews", "Access Provisioning", "Attendance Exceptions", "Business Trips", "Employee Expenses", "Performance/Appraisals", "eLearning", "EOS / Gratuity / Final Settlement", "Payroll Accounting Draft Journal"]);
 
 export function HRWorkspace() {
   const [activeTab, setActiveTab] = useState<HrTab>("Dashboard");
@@ -56,21 +58,23 @@ export function HRWorkspace() {
   const modalFieldTypes = useMemo(() => hrFieldTypesFor(activeTab), [activeTab]);
   const modalSuggestions = useMemo(() => hrSuggestionsFor(activeTab), [activeTab]);
   const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+  const recordById = useMemo(() => new Map(records.map(record => [record.__id, record])), [records]);
+  const searchableRecords = useMemo(() => records.map(record => ({ record, searchText: Object.values(record).join("\n").toLowerCase() })), [records]);
   const filtered = useMemo(() => {
     const search = query.toLowerCase();
-    return records.filter(record => {
-    const searchMatch = !search || Object.values(record).some(value => value?.toLowerCase().includes(search));
+    return searchableRecords.filter(({ record, searchText }) => {
+    const searchMatch = !search || searchText.includes(search);
     const statusMatch = status === "All" || record.Status === status;
     const departmentMatch = department === "All" || record.Department === department;
     const categoryMatch = category === "All" || record.Category === category;
     return searchMatch && statusMatch && departmentMatch && categoryMatch;
-  }).sort((a, b) => {
+  }).map(item => item.record).sort((a, b) => {
     if (!sortColumn) return 0;
     const comparison = (a[sortColumn] ?? "").localeCompare(b[sortColumn] ?? "", undefined, { numeric: true, sensitivity: "base" });
     return sortDirection === "asc" ? comparison : -comparison;
   });
-  }, [records, query, status, department, category, sortColumn, sortDirection]);
-  const selectedRecords = useMemo(() => records.filter(record => selectedIdSet.has(record.__id)), [records, selectedIdSet]);
+  }, [searchableRecords, query, status, department, category, sortColumn, sortDirection]);
+  const selectedRecords = useMemo(() => selectedIds.map(id => recordById.get(id)).filter((record): record is DemoRecord => Boolean(record)), [recordById, selectedIds]);
 
   useEffect(() => { setQuery(""); setStatus("All"); setDepartment("All"); setCategory("All"); setSortColumn(""); setSelectedIds([]); setSelectedRecord(null); setRecordModalOpen(false); }, [activeTab]);
   const notify = (message: string) => { setToast(message); window.setTimeout(() => setToast(""), 2800); };
@@ -105,7 +109,7 @@ export function HRWorkspace() {
     const { generateBrandedPdf } = await import("@/lib/pdf/generator");
     const first = selectedRecords[0]; const documentNumber = recordName(first).replace(/[^a-z0-9-]+/gi, "-");
     const metadata = selectedRecords.flatMap(record => Object.entries(record).filter(([key]) => !key.startsWith("__") && !["IBAN", "Account No", "Basic Salary", "Housing Allowance", "Transport Allowance", "Other Allowance", "Total Salary"].includes(key)).map(([key, value]) => [selectedRecords.length > 1 ? `${recordName(record)} - ${key}` : key, value] as [string, string]));
-    const result = await generateBrandedPdf({ template: hrPdfTemplate(activeTab), documentNumber, date: new Intl.DateTimeFormat("en-GB", { dateStyle: "long" }).format(new Date()), partyLabel: first["Full Name"] ? "Employee" : "Human Resources", partyName: first["Full Name"] || first[primaryName] || "MedTech HR", subject: `${activeTab} record`, metadata, terms: ["Generated from the controlled MedTech HR workspace.", "Verify values and approvals before external issue."], preparedBy: getDemoSession()?.name || PRESENTATION_USER_NAME, approvedBy: "HR Manager" }, "blob");
+    const result = await generateBrandedPdf({ template: hrPdfTemplate(activeTab), documentNumber, date: new Intl.DateTimeFormat("en-GB", { dateStyle: "long" }).format(new Date()), partyLabel: first["Full Name"] || first["Employee Name"] ? "Employee" : "Human Resources", partyName: first["Full Name"] || first["Employee Name"] || first[primaryName] || "MedTech HR", subject: `${activeTab} record`, metadata, terms: ["Generated from the controlled MedTech HR workspace.", "Verify values and approvals before external issue."], preparedBy: getDemoSession()?.name || PRESENTATION_USER_NAME, approvedBy: "HR Manager" }, "blob");
     if (!(result instanceof Blob)) return; downloadBlob(result, `${documentNumber}-${activeTab.toLowerCase().replaceAll(" ", "-")}.pdf`); appendAuditLog({ action: "PDF", module: "Human Resources", record: selectedRecords.map(recordName).join(", "), details: `${activeTab} PDF generated` }); notify("Branded HR PDF generated");
   };
 
@@ -119,7 +123,7 @@ export function HRWorkspace() {
     {activeTab === "Dashboard" ? <HRDashboard onNavigate={setActiveTab} /> : activeTab === "Recruitment" ? <RecruitmentWorkspace /> : activeTab === "Attendance" ? <AttendanceWorkspace /> : activeTab === "Leave" ? <LeaveWorkspace /> : activeTab === "Payroll" ? <PayrollWorkspace /> : <>
       <section className="overflow-hidden rounded-2xl border bg-[var(--panel)] shadow-soft">
         <div className="flex flex-wrap items-center gap-2 border-b px-4 py-3"><div className="relative min-w-[220px] flex-1 md:max-w-sm"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input value={query} onChange={event => setQuery(event.target.value)} placeholder={`Search ${activeTab.toLowerCase()}...`} className="h-9 w-full rounded-lg border bg-[var(--panel)] pl-9 pr-3 text-sm outline-none focus:border-teal-500" /></div>{statusColumn && <select aria-label="Filter by status" value={status} onChange={event => setStatus(event.target.value)} className="h-9 rounded-lg border bg-[var(--panel)] px-3 text-xs"><option value="All">All statuses</option>{statuses.map(value => <option key={value}>{value}</option>)}</select>}{categories.length > 0 && ["Self service", "Settings", "Reports", "Documents"].includes(activeTab) && <select aria-label="Filter by category" value={category} onChange={event => setCategory(event.target.value)} className="h-9 rounded-lg border bg-[var(--panel)] px-3 text-xs"><option value="All">All categories</option>{categories.map(value => <option key={value}>{value}</option>)}</select>}{activeTab === "Employees" && departments.length > 0 && <select aria-label="Filter by department" value={department} onChange={event => setDepartment(event.target.value)} className="h-9 rounded-lg border bg-[var(--panel)] px-3 text-xs"><option value="All">All departments</option>{departments.map(value => <option key={value}>{value}</option>)}</select>}<div className="ml-auto flex flex-wrap gap-2">{activeTab === "Approvals" && selectedRecords.length > 0 && <Button onClick={approveSelected}><Check className="h-4 w-4" /> Approve selected</Button>}{selectedRecords.length > 0 && <Button variant="secondary" onClick={downloadPdf}><FileText className="h-4 w-4" /> PDF ({selectedRecords.length})</Button>}<Button variant="secondary" onClick={exportCurrent}><Download className="h-4 w-4" /> Excel</Button></div></div>
-        {filtered.length ? <div className="overflow-x-auto"><table className="w-full min-w-[980px] text-left"><thead><tr className="border-b bg-slate-50/80 dark:bg-slate-900/40"><th className="w-12 px-4 py-3"><input aria-label="Select all HR records" type="checkbox" checked={filtered.length > 0 && filtered.every(record => selectedIds.includes(record.__id))} onChange={toggleAll} className="h-4 w-4 accent-teal-600" /></th>{view.columns.map(column => <th key={column} className="px-4 py-3"><button aria-label={`Sort by ${column}`} onClick={() => toggleSort(column)} className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">{column}{sortColumn === column ? sortDirection === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" /> : <ArrowUpDown className="h-3 w-3 opacity-40" />}</button></th>)}<th className="w-14" /></tr></thead><tbody className="divide-y">{filtered.map(record => <tr key={record.__id} className={cn("transition hover:bg-slate-50 dark:hover:bg-slate-800/30", selectedIds.includes(record.__id) && "bg-teal-50/60 dark:bg-teal-950/20")}><td className="px-4 py-3"><input aria-label={`Select ${recordName(record)}`} type="checkbox" checked={selectedIds.includes(record.__id)} onChange={() => toggleSelection(record.__id)} className="h-4 w-4 accent-teal-600" /></td>{view.columns.map((column, index) => <td key={column} className={cn("px-4 py-3 text-xs", index === 0 ? "font-semibold" : "text-[var(--muted)]")}>{column === "Status" ? <StatusBadge>{record[column]}</StatusBadge> : column === "Full Name" && activeTab === "Employees" ? <button onClick={() => openRecord(record)} className="text-left font-semibold text-[var(--text)] hover:text-teal-600"><span className="block">{record["Full Name"]}</span><span className="text-[10px] font-normal text-slate-400">{record["Email Address"]}</span></button> : record[column]}</td>)}<td className="px-3"><button aria-label={`Open ${recordName(record)}`} onClick={() => openRecord(record)} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-teal-600"><Ellipsis className="h-4 w-4" /></button></td></tr>)}</tbody></table></div> : <EmptyState title={`No ${activeTab.toLowerCase()} found`} description="Adjust the search or filters, or create a new record." />}
+        {filtered.length ? <div className="overflow-x-auto"><table className="w-full min-w-[980px] text-left"><thead><tr className="border-b bg-slate-50/80 dark:bg-slate-900/40"><th className="w-12 px-4 py-3"><input aria-label="Select all HR records" type="checkbox" checked={filtered.length > 0 && filtered.every(record => selectedIdSet.has(record.__id))} onChange={toggleAll} className="h-4 w-4 accent-teal-600" /></th>{view.columns.map(column => <th key={column} className="px-4 py-3"><button aria-label={`Sort by ${column}`} onClick={() => toggleSort(column)} className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">{column}{sortColumn === column ? sortDirection === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" /> : <ArrowUpDown className="h-3 w-3 opacity-40" />}</button></th>)}<th className="w-14" /></tr></thead><tbody className="divide-y">{filtered.map(record => <tr key={record.__id} className={cn("transition hover:bg-slate-50 dark:hover:bg-slate-800/30", selectedIdSet.has(record.__id) && "bg-teal-50/60 dark:bg-teal-950/20")}><td className="px-4 py-3"><input aria-label={`Select ${recordName(record)}`} type="checkbox" checked={selectedIdSet.has(record.__id)} onChange={() => toggleSelection(record.__id)} className="h-4 w-4 accent-teal-600" /></td>{view.columns.map((column, index) => <td key={column} className={cn("px-4 py-3 text-xs", index === 0 ? "font-semibold" : "text-[var(--muted)]")}>{column === "Status" ? <StatusBadge>{record[column]}</StatusBadge> : column === "Full Name" && activeTab === "Employees" ? <button onClick={() => openRecord(record)} className="text-left font-semibold text-[var(--text)] hover:text-teal-600"><span className="block">{record["Full Name"]}</span><span className="text-[10px] font-normal text-slate-400">{record["Email Address"]}</span></button> : record[column]}</td>)}<td className="px-3"><button aria-label={`Open ${recordName(record)}`} onClick={() => openRecord(record)} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-teal-600"><Ellipsis className="h-4 w-4" /></button></td></tr>)}</tbody></table></div> : <EmptyState title={`No ${activeTab.toLowerCase()} found`} description="Adjust the search or filters, or create a new record." />}
         <div className="flex items-center justify-between border-t px-4 py-3 text-[11px] text-slate-400"><span>{selectedRecords.length ? `${selectedRecords.length} selected - ` : ""}Showing {filtered.length} of {records.length}</span><span>Changes save locally and write to the audit trail</span></div>
       </section>
     </>}
@@ -133,17 +137,25 @@ export function HRWorkspace() {
 function hrFieldTypesFor(tab: HrTab): Record<string, RecordFieldType> {
   if (tab === "Self service") return { Submitted: "date", "Last update": "date" };
   if (tab === "Settings") return { "Effective date": "date" };
+  if (tab === "Contracts") return { "Start Date": "date", "End Date": "date", "Probation End Date": "date" };
+  if (tab === "Probation Reviews") return { "Joining Date": "date", "Probation End Date": "date" };
+  if (tab === "Attendance Exceptions") return { Date: "date" };
+  if (tab === "Business Trips") return { From: "date", To: "date" };
+  if (tab === "Employee Expenses") return { "Claim Date": "date" };
+  if (tab === "eLearning") return { "Due Date": "date" };
+  if (tab === "EOS / Gratuity / Final Settlement") return { "Last Working Day": "date" };
   return {};
 }
 
 function hrSuggestionsFor(tab: HrTab): Record<string, RecordFieldSuggestion[]> {
-  if (tab !== "Self service") return {};
+  if (tab !== "Self service" && !employeeLinkedTabs.has(tab)) return {};
+  const nameField = tab === "Self service" ? "Employee" : "Employee Name";
   const employeeSuggestions = hrEmployees.map(employee => ({
     value: employee["Full Name"],
     label: `${employee["Employee No"]} - ${employee.Department} - ${employee["Job Title"]}`,
     fill: {
       "Employee Code": employee["Employee No"],
-      Employee: employee["Full Name"],
+      [nameField]: employee["Full Name"],
       Department: employee.Department,
       Owner: employee["Line Manager"] || "HR Manager"
     }
@@ -153,15 +165,20 @@ function hrSuggestionsFor(tab: HrTab): Record<string, RecordFieldSuggestion[]> {
     label: `${employee["Full Name"]} - ${employee.Department}`,
     fill: {
       "Employee Code": employee["Employee No"],
-      Employee: employee["Full Name"],
+      [nameField]: employee["Full Name"],
       Department: employee.Department,
       Owner: employee["Line Manager"] || "HR Manager"
     }
   }));
-  return { Employee: employeeSuggestions, "Employee Code": codeSuggestions };
+  return { [nameField]: employeeSuggestions, "Employee Code": codeSuggestions };
 }
 
 function validateHrRecord(tab: HrTab, values: Record<string, string>) {
+  if (employeeLinkedTabs.has(tab) && !values["Employee Code"]?.trim() && !values["Employee Name"]?.trim()) return "Select an employee code or employee name.";
+  if (tab === "Access Provisioning") {
+    const validation = accessProvisioningSchema.safeParse(values);
+    if (!validation.success) return validation.error.issues[0]?.message || "Check the access provisioning fields.";
+  }
   if (tab === "Self service") {
     if (!values.Employee?.trim() && !values["Employee Code"]?.trim()) return "Select an employee name or employee code.";
     if (!values.Service?.trim()) return "Select a self-service request type.";
@@ -179,7 +196,22 @@ function validateHrRecord(tab: HrTab, values: Record<string, string>) {
 function normalizeHrRecord(tab: HrTab, values: Record<string, string>): Record<string, string> {
   if (tab === "Self service") return normalizeSelfServiceRecord(values);
   if (tab === "Settings") return normalizeSettingsRecord(values);
+  if (employeeLinkedTabs.has(tab)) return normalizeLinkedEmployeeRecord(tab, values);
   return values;
+}
+
+function normalizeLinkedEmployeeRecord(tab: HrTab, values: Record<string, string>): Record<string, string> {
+  const employee = findHrEmployee(values["Employee Code"], values["Employee Name"]);
+  const primaryColumn = hrViews[tab as Exclude<HrTab, "Dashboard">].columns[0];
+  const next = {
+    ...values,
+    [primaryColumn]: autoNo(tab, values[primaryColumn]),
+    "Employee Code": values["Employee Code"] || employee?.["Employee No"] || "",
+    "Employee Name": values["Employee Name"] || employee?.["Full Name"] || "",
+    Department: values.Department || employee?.Department || ""
+  };
+  if (tab === "EOS / Gratuity / Final Settlement") next["Final Payable"] = qar(finalSettlementPayable(next));
+  return next;
 }
 
 function normalizeSelfServiceRecord(values: Record<string, string>): Record<string, string> {
@@ -243,6 +275,23 @@ function actionForSelfService(service: string) {
 
 function nextSelfServiceRequestNo() {
   return `ESS-${new Date().getFullYear()}-${String(Date.now() % 10000).padStart(4, "0")}`;
+}
+
+function autoNo(tab: HrTab, value?: string) {
+  if (value?.trim() && value !== "Auto generated") return value;
+  const prefixes: Partial<Record<HrTab, string>> = {
+    Contracts: "CON",
+    "Probation Reviews": "PRB",
+    "Access Provisioning": "ACC",
+    "Attendance Exceptions": "AEX",
+    "Business Trips": "BT",
+    "Employee Expenses": "EXP",
+    "Performance/Appraisals": "APR",
+    eLearning: "ELN",
+    "EOS / Gratuity / Final Settlement": "EOS",
+    "Payroll Accounting Draft Journal": "PAY-JRN"
+  };
+  return `${prefixes[tab] || "HR"}-${new Date().getFullYear()}-${String(Date.now() % 10000).padStart(4, "0")}`;
 }
 
 function formatHrDate(value: string) {
@@ -414,7 +463,7 @@ function hrPdfTemplate(tab: HrTab): PdfTemplate {
   if (tab === "Payroll") return "payslip";
   if (tab === "Recruitment") return "offer_letter";
   if (tab === "Leave") return "leave_approval";
-  if (tab === "Gratuity") return "gratuity_statement";
+  if (tab === "EOS / Gratuity / Final Settlement") return "gratuity_statement";
   if (tab === "Documents" || tab === "Self service") return "employee_letter";
   if (tab === "Approvals") return "appointment_letter";
   return "report";
