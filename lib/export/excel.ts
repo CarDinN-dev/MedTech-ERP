@@ -40,20 +40,37 @@ export async function exportWorkbookToExcel(sheets: Array<{ name: string; rows: 
   downloadBlob(blob, `${filename}.xlsx`);
 }
 
-export async function parseExcel<T>(file: File, validate: (row: unknown, index: number) => T) {
-  const ExcelJS = await import("exceljs"); const data = await file.arrayBuffer(); const workbook = new ExcelJS.Workbook(); await workbook.xlsx.load(data);
-  const sheet = workbook.worksheets[0]; if (!sheet) return { valid: [], errors: [{ row: 0, message: "Workbook has no worksheet" }], total: 0 };
-  const headers: string[] = []; const headerCounts = new Map<string, number>();
+export async function parseExcelRows(file: File) {
+  const ExcelJS = await import("exceljs");
+  const data = await file.arrayBuffer();
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(data);
+  const sheet = workbook.worksheets[0];
+  if (!sheet) return { sheetName: "", headers: [], rows: [], total: 0, hasWorksheet: false };
+  const headers: string[] = [];
+  const headerCounts = new Map<string, number>();
   sheet.getRow(1).eachCell((cell, column) => {
     const base = String(cell.text).trim();
     const occurrence = (headerCounts.get(base) ?? 0) + 1;
     headerCounts.set(base, occurrence);
     headers[column - 1] = occurrence === 1 ? base : `${base} (${occurrence})`;
   });
-  const rows: Record<string, unknown>[] = []; sheet.eachRow((row, number) => { if (number === 1) return; const item: Record<string, unknown> = {}; headers.forEach((header, index) => { item[header] = row.getCell(index + 1).value ?? ""; }); rows.push(item); });
+  const rows: Record<string, unknown>[] = [];
+  sheet.eachRow((row, number) => {
+    if (number === 1) return;
+    const item: Record<string, unknown> = {};
+    headers.forEach((header, index) => { item[header] = row.getCell(index + 1).value ?? ""; });
+    rows.push(item);
+  });
+  return { sheetName: sheet.name, headers, rows, total: rows.length, hasWorksheet: true };
+}
+
+export async function parseExcel<T>(file: File, validate: (row: unknown, index: number) => T) {
+  const { rows, total, hasWorksheet } = await parseExcelRows(file);
+  if (!hasWorksheet) return { valid: [], errors: [{ row: 0, message: "Workbook has no worksheet" }], total: 0 };
   const valid: T[] = []; const errors: { row: number; message: string }[] = [];
   rows.forEach((row, index) => { try { valid.push(validate(row, index + 2)); } catch (error) { errors.push({ row: index + 2, message: error instanceof Error ? error.message : "Invalid row" }); } });
-  return { valid, errors, total: rows.length };
+  return { valid, errors, total };
 }
 
 function columnLetter(column: number) { let result = ""; while (column > 0) { column--; result = String.fromCharCode(65 + (column % 26)) + result; column = Math.floor(column / 26); } return result || "A"; }
