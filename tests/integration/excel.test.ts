@@ -21,6 +21,17 @@ describe("Excel employee import", () => {
     expect(click).toHaveBeenCalledOnce();
   });
 
+  it("escapes formula-like exported cells", async () => {
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined);
+    await exportToExcel([{ Employee: "=cmd|calc", Department: "+Finance", Status: "Active" }], "formula-export", "Employees");
+    const blob = vi.mocked(URL.createObjectURL).mock.calls.at(-1)?.[0] as Blob;
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(await blob.arrayBuffer());
+    const sheet = workbook.worksheets[0];
+    expect(sheet.getCell("A2").value).toBe("'=cmd|calc");
+    expect(sheet.getCell("B2").value).toBe("'+Finance");
+  });
+
   it("parses valid rows using the production import schema", async () => {
     const file = await workbookFile(
       ["employee_number", "full_name", "work_email", "department", "designation", "join_date", "employment_type"],
@@ -48,6 +59,15 @@ describe("Excel employee import", () => {
     const file = new File([buffer as BlobPart], "empty.xlsx");
     const result = await parseExcel(file, row => row);
     expect(result).toEqual({ valid: [], errors: [{ row: 0, message: "Workbook has no worksheet" }], total: 0 });
+  });
+
+  it("rejects unsupported files and reports missing required columns", async () => {
+    const txt = new File(["hello"], "employees.txt", { type: "text/plain" });
+    expect((await parseExcel(txt, row => row)).errors[0].message).toContain("Only .xlsx or .xlsm");
+
+    const file = await workbookFile(["employee_number"], [["MT-9001"]]);
+    const result = await parseExcel(file, row => row, { requiredColumns: ["employee_number", "full_name"] });
+    expect(result.errors[0].message).toContain("missing required columns: full_name");
   });
 
   it("preserves all 90 MedTech employee fields and disambiguates repeated dates", async () => {

@@ -31,6 +31,17 @@ describe("branded PDF generation", () => {
     });
   });
 
+  it("treats unsafe-looking PDF input as plain text", async () => {
+    await assertPdf({
+      ...samplePdfData,
+      documentNumber: "../<script>alert(1)</script>",
+      partyName: "<b>Customer</b>",
+      subject: "<img src=x onerror=alert(1)>",
+      metadata: [["<script>Key</script>", "=cmd|calc"]],
+      notes: "<iframe>bad</iframe>"
+    });
+  });
+
   it.each(["approval_to_hire", "hiring_approval", "offer_letter"] as const)("generates the supplied HR form format: %s", async template => {
     await assertPdf({
       template, documentNumber: "HR-REF-2026-001", date: "21 June 2026", partyLabel: "Candidate", partyName: "Noor Al-Hajri",
