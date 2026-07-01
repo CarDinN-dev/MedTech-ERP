@@ -4,7 +4,7 @@ import { buildReportingModel, filterReportRows } from "@/lib/reporting-data";
 describe("reporting data", () => {
   it("builds local dashboards and filters by BU", () => {
     const model = buildReportingModel();
-    expect(model.dashboards).toHaveLength(14);
+    expect(model.dashboards).toHaveLength(15);
     expect(model.rows.some(row => row.KPI === "Revenue by BU vs target")).toBe(true);
 
     const diagnostics = filterReportRows(model.rows, { bu: "Diagnostics" });

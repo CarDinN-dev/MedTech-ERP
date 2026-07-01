@@ -8,6 +8,14 @@ describe("document control", () => {
     expect(issueDocumentNumber("Quotation")).toBe("QTN-2026-0002");
   });
 
+  it("recovers safely from tampered document sequence storage", () => {
+    localStorage.clear();
+    localStorage.setItem("medtech-demo:doc-sequence:QTN:2026", "not-a-number");
+
+    expect(issueDocumentNumber("Quotation")).toBe("QTN-2026-0001");
+    expect(issueDocumentNumber("Quotation")).toBe("QTN-2026-0002");
+  });
+
   it("maps source records to controlled document templates", () => {
     expect(documentTypeFor("procurement", "Purchase Orders", {})).toBe("Purchase Order");
     expect(templateForDocumentType("Purchase Order")).toBe("purchase_order");

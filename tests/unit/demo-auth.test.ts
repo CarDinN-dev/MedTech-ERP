@@ -23,6 +23,12 @@ describe("demo authentication", () => {
     expect(() => signInDemo("blocked@medtech.qa", "StrongPass1!")).toThrow("not active");
   });
 
+  it("rejects tampered local demo sessions", () => {
+    localStorage.setItem(DEMO_SESSION_KEY, JSON.stringify({ name: "Tampered", email: testUsers[5].email, role: "Super Admin", department: testUsers[5].department, initials: "T" }));
+
+    expect(getDemoSession()).toBeNull();
+  });
+
   it("clears local and cookie session state", () => {
     signInDemo(DEFAULT_DEMO_EMAIL, DEFAULT_DEMO_PASSWORD);
     clearDemoSession();
