@@ -1,3 +1,5 @@
+import { plainText, safeFileName } from "@/lib/validation";
+
 export type PdfTemplate = "estimation" | "quotation" | "invoice" | "receipt" | "purchase_order" | "rfq" | "delivery_note" | "packing_list" | "service_report" | "employee_letter" | "offer_letter" | "approval_to_hire" | "hiring_approval" | "appointment_letter" | "employment_contract" | "salary_certificate" | "experience_certificate" | "warning_letter" | "payslip" | "leave_approval" | "clearance_certificate" | "final_settlement" | "gratuity_statement" | "payment_voucher" | "report";
 export interface PdfLine { description: string; code?: string; quantity: number; unit?: string; unitPrice: number; discount?: number; total: number; }
 export interface PdfData {
@@ -16,6 +18,7 @@ const titles: Record<PdfTemplate, string> = {
 };
 
 export async function generateBrandedPdf(data: PdfData, output: "save" | "blob" = "save") {
+  data = sanitizePdfData(data);
   const [{ jsPDF }, autoTableModule] = await Promise.all([import("jspdf"), import("jspdf-autotable")]);
   const autoTable = autoTableModule.default; const doc = new jsPDF({ unit: "mm", format: "a4", compress: true });
   if (data.template === "approval_to_hire" || data.template === "hiring_approval" || data.template === "offer_letter" || data.template === "leave_approval") {
@@ -23,7 +26,7 @@ export async function generateBrandedPdf(data: PdfData, output: "save" | "blob" 
     if (data.template === "hiring_approval") renderHiringApproval(doc, autoTable, data);
     if (data.template === "offer_letter") renderOfferLetter(doc, autoTable, data);
     if (data.template === "leave_approval") renderLeaveApplicationForm(doc, autoTable, data);
-    const specialFilename = `${data.documentNumber}-${data.template}.pdf`;
+    const specialFilename = `${safeFileName(`${data.documentNumber}-${data.template}`)}.pdf`;
     if (output === "blob") return doc.output("blob"); doc.save(specialFilename); return specialFilename;
   }
   const teal: [number,number,number] = [15,118,110], ink: [number,number,number] = [24,34,47];
@@ -58,7 +61,7 @@ export async function generateBrandedPdf(data: PdfData, output: "save" | "blob" 
   if (data.terms?.length) { doc.setFont("helvetica","bold"); doc.setFontSize(8); doc.text("TERMS & CONDITIONS", 14, y); y += 5; doc.setFont("helvetica","normal"); doc.setFontSize(7); data.terms.forEach((term,i) => { doc.text(`${i+1}. ${term}`, 14, y, { maxWidth: 180 }); y += 4.5; }); }
   const signatureY = Math.max(y + 12, 238); doc.setDrawColor(203,213,225); [[14,"Prepared by",data.preparedBy],[75,"Approved by",data.approvedBy ?? ""],[137,"Company stamp",""]].forEach(([x,label,value]) => { const nx = x as number; doc.line(nx, signatureY, nx + 48, signatureY); doc.setFontSize(7); doc.setTextColor(100,116,139); doc.text(label as string,nx,signatureY+5); doc.setFont("helvetica","bold"); doc.setTextColor(...ink); doc.text(value as string,nx,signatureY+10); });
   const pages = doc.getNumberOfPages(); for (let p=1;p<=pages;p++) { doc.setPage(p); doc.setFillColor(...ink); doc.rect(0, 284, 210, 13, "F"); doc.setTextColor(255,255,255); doc.setFont("helvetica","normal"); doc.setFontSize(6.5); doc.text("MedTech Corporation Trading W.L.L. · Doha, State of Qatar · info@medtech.qa", 14, 291); doc.text(`Page ${p} of ${pages}`, 196, 291, { align: "right" }); }
-  const filename = `${data.documentNumber}-${data.template}.pdf`;
+  const filename = `${safeFileName(`${data.documentNumber}-${data.template}`)}.pdf`;
   if (output === "blob") return doc.output("blob"); doc.save(filename); return filename;
 }
 
@@ -348,6 +351,25 @@ function metadataMap(data: PdfData) { return new Map((data.metadata ?? []).map((
 function lastTableY(doc: PdfDocument) { return (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY; }
 
 function amount(value: number, currency = "QAR") { return `${currency} ${value.toLocaleString("en-QA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`; }
+
+function sanitizePdfData(data: PdfData): PdfData {
+  return {
+    ...data,
+    documentNumber: safeFileName(data.documentNumber, "MEDTECH-DOC").toUpperCase(),
+    date: plainText(data.date, 80),
+    partyLabel: plainText(data.partyLabel, 80),
+    partyName: plainText(data.partyName, 160),
+    partyAddress: data.partyAddress ? plainText(data.partyAddress, 500) : undefined,
+    subject: data.subject ? plainText(data.subject, 500) : undefined,
+    currency: data.currency ? plainText(data.currency, 8).toUpperCase() : undefined,
+    notes: data.notes ? plainText(data.notes, 2000) : undefined,
+    preparedBy: plainText(data.preparedBy, 120),
+    approvedBy: data.approvedBy ? plainText(data.approvedBy, 120) : undefined,
+    terms: data.terms?.map(term => plainText(term, 500)),
+    metadata: data.metadata?.map(([key, value]) => [plainText(key, 160), plainText(value, 1000)]),
+    lines: data.lines?.map(line => ({ ...line, code: line.code ? plainText(line.code, 80) : undefined, description: plainText(line.description, 1000), unit: line.unit ? plainText(line.unit, 40) : undefined }))
+  };
+}
 
 export const samplePdfData: PdfData = {
   template: "quotation", documentNumber: "QTN-2026-00314", date: "20 June 2026", partyLabel: "Customer",
