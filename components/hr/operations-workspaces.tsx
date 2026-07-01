@@ -1,22 +1,25 @@
 ﻿"use client";
 
-import { useMemo, useRef, useState } from "react";
+import { Fragment, useMemo, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, ArrowUpDown, Banknote, Calculator, CheckCircle2, Download, FileText, Plus, Search, Trash2, Upload, UsersRound, XCircle } from "lucide-react";
 import { RecordModal, type RecordFieldSuggestion, type RecordFieldType } from "@/components/record-modal";
 import { Button, EmptyState, StatusBadge } from "@/components/ui";
+import { hasApprovedApproval, submitApprovalRequest } from "@/lib/approval-matrix";
 import { parseAttendanceLog } from "@/lib/attendance-import";
 import { appendAuditLog, useAuditLog } from "@/lib/audit-store";
 import { getDemoSession, PRESENTATION_USER_NAME } from "@/lib/demo-auth";
 import { createDemoRecord, readDemoRecordsSnapshot, useDemoRecords, writeDemoRecordsSnapshot, type DemoRecord } from "@/lib/demo-store";
 import { exportToExcel, exportWorkbookToExcel } from "@/lib/export/excel";
+import { writeFinanceJournalDraft } from "@/lib/finance-workflow";
 import { calculateNetPay, calculatePayrollItem, type PayrollEffect } from "@/lib/hr-calculations";
 import { calculateLeaveSettlement, calculateMonthlyPayrollLine, validateMonthlyPayroll, type MonthlyPayrollLineInput, type MonthlyPayrollSettings } from "@/lib/payroll-calculations";
 import { applyLoanDeductions, buildLoanSchedule, cancelLoan, loanBalance, loanInstallmentCount, markPayrollInstallmentsDeducted, parseLoanSchedule, pendingLoanDeduction, postponeInstallment, refreshCompletedLoans, releasePayrollInstallments, type LoanRecord } from "@/lib/payroll-loans";
 import { buildWpsRows, buildWpsSummaryRows, defaultWpsColumns, validateWpsExport, type WpsValidationError } from "@/lib/wps-export";
 import { attendanceViews, leaveViews, payrollModules, payrollViews, recruitmentViews, type HrOperationalView } from "@/lib/hr-operations-data";
-import { hrEmployees } from "@/lib/hr-data";
+import { hrEmployees, hrViews } from "@/lib/hr-data";
 import type { PdfTemplate } from "@/lib/pdf/generator";
 import { cn } from "@/lib/utils";
+import { permissionError, segregationWarning } from "@/lib/erp-security";
 
 export function RecruitmentWorkspace() {
   return <OperationsWorkspace area="Recruitment" views={recruitmentViews} template={tab => tab === "Offer Letters" ? "offer_letter" : tab === "Manpower Planning" ? "approval_to_hire" : tab === "Vacancy Requests" ? "hiring_approval" : "report"} />;
@@ -40,13 +43,13 @@ export function AttendanceWorkspace() {
   }), [enriched, date, query]);
   const departments = useMemo(() => Array.from(new Set(baseFiltered.map(item => item.meta.department))).sort(), [baseFiltered]);
   const filtered = useMemo(() => baseFiltered
-    .filter(item => (department === "All" || item.meta.department === department) && (status === "All" || attendanceStatusGroup(item.row.Status) === status))
+    .filter(item => (department === "All" || item.meta.department === department) && (status === "All" || attendanceSeverity(item.row.Status) === status))
     .sort((a, b) => a.meta.department.localeCompare(b.meta.department) || a.row.Employee.localeCompare(b.row.Employee) || dateSortValue(a.row.Date).localeCompare(dateSortValue(b.row.Date))), [baseFiltered, department, status]);
-  const grouped = useMemo(() => Map.groupBy(filtered, item => item.meta.department), [filtered]);
-  const present = filtered.filter(item => attendanceStatusGroup(item.row.Status) === "Present").length;
-  const absent = filtered.filter(item => attendanceStatusGroup(item.row.Status) === "Absent").length;
-  const late = filtered.filter(item => item.row.Status === "Late").length;
-  const payrollImpact = filtered.filter(item => attendanceStatusGroup(item.row.Status) === "Absent").reduce((sum, item) => sum + payrollImpactForAbsence(item.row, absenceStore.records), 0);
+  const grouped = useMemo(() => groupBy(filtered, item => item.meta.department), [filtered]);
+  const present = filtered.filter(item => attendanceSeverity(item.row.Status) === "Present").length;
+  const absent = filtered.filter(item => attendanceSeverity(item.row.Status) === "Absent").length;
+  const late = filtered.filter(item => attendanceSeverity(item.row.Status) === "Late").length;
+  const payrollImpact = filtered.filter(item => attendanceSeverity(item.row.Status) === "Absent").reduce((sum, item) => sum + payrollImpactForAbsence(item.row, absenceStore.records), 0);
   const importAttendance = async (file?: File) => {
     if (!file) return;
     try {
@@ -62,14 +65,20 @@ export function AttendanceWorkspace() {
     }
   };
   const exportRows = () => {
-    exportToExcel(filtered.map(({ row, meta }) => ({ Department: meta.department, Employee: row.Employee, Date: row.Date, "Check in": row["Check in"], "Check out": row["Check out"], Hours: row.Hours, Status: row.Status })), "medtech-attendance-department-view", "Attendance");
+    exportToExcel(filtered.map(({ row, meta }) => ({ Department: meta.department, Employee: row.Employee, Date: row.Date, "Check in": row["Check in"], "Check out": row["Check out"], Hours: row.Hours, Status: row.Status, "Approval Decision": attendanceDecision(row) })), "medtech-attendance-department-view", "Attendance");
     notify("Attendance export generated");
   };
   const setPresence = (record: DemoRecord, nextStatus: "Present" | "Absent") => {
     dailyStore.update(record.__id, nextStatus === "Present"
-      ? { Status: "Present", "Check in": record["Check in"] || "08:00", "Check out": record["Check out"] || "17:00", Hours: record.Hours === "0" ? "8.00" : record.Hours || "8.00" }
-      : { Status: "Absent", "Check in": "", "Check out": "", Hours: "0", Overtime: "0" });
+      ? { Status: "Present", "Check in": record["Check in"] || "08:00", "Check out": record["Check out"] || "17:00", Hours: record.Hours === "0" ? "8.00" : record.Hours || "8.00", "Approval Decision": "", "Approval By": "", "Approval Date": "" }
+      : { Status: "Absent", "Check in": "", "Check out": "", Hours: "0", Overtime: "0", "Approval Decision": "", "Approval By": "", "Approval Date": "" });
     notify(`${record.Employee} marked ${nextStatus.toLowerCase()}`);
+  };
+  const saveDecision = (record: DemoRecord, decision: "Approve" | "Not Approved") => {
+    const approver = getDemoSession()?.name || PRESENTATION_USER_NAME;
+    dailyStore.update(record.__id, { "Approval Decision": decision, "Approval By": approver, "Approval Date": new Date().toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) });
+    appendAuditLog({ action: "ATTENDANCE DECISION", module: "Human Resources - Attendance", record: record.Record || `${record.Employee} ${record.Date}`, details: `${record.Status} marked ${decision} by ${approver}` });
+    notify(`${record.Employee} marked ${decision.toLowerCase()}`);
   };
   return <div className="space-y-4">
     <section className="overflow-hidden rounded-2xl border bg-[var(--panel)] shadow-soft">
@@ -95,10 +104,11 @@ export function AttendanceWorkspace() {
       <div className="grid min-h-[620px] xl:grid-cols-[260px_1fr_310px]">
         <aside className="border-b bg-white p-3 dark:bg-slate-950/20 xl:border-b-0 xl:border-r">
           <div className="mb-3 px-1 text-[10px] font-bold uppercase tracking-wide text-slate-400">Departments</div>
-          <DepartmentButton active={department === "All"} name="All departments" count={baseFiltered.length} present={baseFiltered.filter(item => attendanceStatusGroup(item.row.Status) === "Present").length} onClick={() => setDepartment("All")} />
+          <select aria-label="Filter attendance by department" value={department} onChange={event => setDepartment(event.target.value)} className="mb-3 h-10 w-full rounded-lg border bg-[var(--panel)] px-3 text-xs xl:hidden"><option value="All">All departments</option>{departments.map(name => <option key={name}>{name}</option>)}</select>
+          <DepartmentButton active={department === "All"} name="All departments" count={baseFiltered.length} present={baseFiltered.filter(item => attendanceSeverity(item.row.Status) === "Present").length} onClick={() => setDepartment("All")} />
           {departments.map(name => {
             const rows = baseFiltered.filter(item => item.meta.department === name);
-            return <DepartmentButton key={name} active={department === name} name={name} count={rows.length} present={rows.filter(item => attendanceStatusGroup(item.row.Status) === "Present").length} onClick={() => setDepartment(name)} />;
+            return <DepartmentButton key={name} active={department === name} name={name} count={rows.length} present={rows.filter(item => attendanceSeverity(item.row.Status) === "Present").length} onClick={() => setDepartment(name)} />;
           })}
         </aside>
         <main className="min-w-0 border-b xl:border-b-0 xl:border-r">
@@ -108,31 +118,36 @@ export function AttendanceWorkspace() {
               <input aria-label="Search attendance" value={query} onChange={event => setQuery(event.target.value)} placeholder="Search employee, department or status..." className="h-10 w-full rounded-lg border bg-transparent pl-9 pr-3 text-sm outline-none focus:border-teal-500" />
             </div>
             <select aria-label="Attendance date" value={date} onChange={event => setDate(event.target.value)} className="h-10 rounded-lg border bg-[var(--panel)] px-3 text-xs"><option>All</option>{dates.map(value => <option key={value}>{value}</option>)}</select>
-            <select aria-label="Attendance status" value={status} onChange={event => setStatus(event.target.value)} className="h-10 rounded-lg border bg-[var(--panel)] px-3 text-xs"><option>All</option><option>Present</option><option>Absent</option></select>
+            <select aria-label="Attendance status" value={status} onChange={event => setStatus(event.target.value)} className="h-10 rounded-lg border bg-[var(--panel)] px-3 text-xs"><option>All</option><option>Present</option><option>Late</option><option>Absent</option></select>
           </div>
           <div className="max-h-[560px] overflow-auto">
             {filtered.length ? Array.from(grouped.entries()).map(([name, items]) => <section key={name} className="border-b last:border-b-0">
               <div className="sticky top-0 z-10 flex items-center gap-3 border-b bg-slate-50/95 px-4 py-2 backdrop-blur dark:bg-slate-900/95">
                 <UsersRound className="h-4 w-4 text-teal-600" />
                 <div className="font-semibold">{name}</div>
-                <div className="ml-auto text-[11px] text-[var(--muted)]">{items.filter(item => attendanceStatusGroup(item.row.Status) === "Present").length} present / {items.length}</div>
+                <div className="ml-auto text-[11px] text-[var(--muted)]">{items.filter(item => attendanceSeverity(item.row.Status) === "Present").length} present / {items.length}</div>
               </div>
               <div className="space-y-2 p-3 lg:hidden">{items.map(({ row, meta }) => <div key={row.__id} className="rounded-lg border bg-[var(--panel)] p-3">
                 <div className="flex items-start gap-3"><div className="min-w-0 flex-1"><div className="truncate text-xs font-bold">{row.Employee}</div><div className="mt-0.5 truncate text-[10px] text-slate-400">{meta.code} · {meta.title}</div></div><AttendanceStatus status={row.Status} /></div>
                 <div className="mt-3 grid grid-cols-4 gap-2 text-[11px]"><div><span className="block text-[10px] uppercase text-slate-400">Date</span>{row.Date}</div><div><span className="block text-[10px] uppercase text-slate-400">In</span>{row["Check in"] || "-"}</div><div><span className="block text-[10px] uppercase text-slate-400">Out</span>{row["Check out"] || "-"}</div><div><span className="block text-[10px] uppercase text-slate-400">Hours</span>{row.Hours || "0"}</div></div>
+                {attendanceNeedsDecision(row) && <AttendanceExceptionDetail row={row} absences={absenceStore.records} onDecision={saveDecision} />}
                 <div className="mt-3 flex gap-2"><button onClick={() => setPresence(row, "Present")} className="flex h-9 flex-1 items-center justify-center gap-1 rounded-lg border text-xs font-semibold text-emerald-700 hover:bg-emerald-50"><CheckCircle2 className="h-4 w-4" />Present</button><button onClick={() => setPresence(row, "Absent")} className="flex h-9 flex-1 items-center justify-center gap-1 rounded-lg border text-xs font-semibold text-rose-700 hover:bg-rose-50"><XCircle className="h-4 w-4" />Absent</button></div>
               </div>)}</div>
               <table className="hidden w-full table-fixed text-left text-xs lg:table">
-                <thead className="bg-white text-[10px] uppercase tracking-wide text-slate-400 dark:bg-slate-950/30"><tr>{["Employee", "Date", "Punch in", "Punch out", "Hours", "Status", "Action"].map((label, index) => <th key={label} className={cn("px-3 py-2 font-bold", index === 0 && "w-[25%]", index === 1 && "w-[14%]", index > 1 && index < 5 && "w-[11%]", index === 5 && "w-[15%]", index === 6 && "w-[12%]")}>{label}</th>)}</tr></thead>
-                <tbody className="divide-y">{items.map(({ row, meta }) => <tr key={row.__id} className="hover:bg-slate-50/80 dark:hover:bg-slate-900/40">
-                  <td className="px-3 py-3"><div className="truncate font-semibold">{row.Employee}</div><div className="mt-0.5 truncate text-[10px] text-slate-400">{meta.code} · {meta.title}</div></td>
-                  <td className="px-3 py-3 text-[var(--muted)]">{row.Date}</td>
-                  <td className="px-3 py-3 font-medium">{row["Check in"] || "-"}</td>
-                  <td className="px-3 py-3 font-medium">{row["Check out"] || "-"}</td>
-                  <td className="px-3 py-3">{row.Hours || "0"}</td>
-                  <td className="px-3 py-3"><AttendanceStatus status={row.Status} /></td>
-                  <td className="px-3 py-3"><div className="flex gap-1"><button title="Mark present" onClick={() => setPresence(row, "Present")} className="grid h-8 w-8 place-items-center rounded-lg border text-emerald-600 hover:bg-emerald-50"><CheckCircle2 className="h-4 w-4" /></button><button title="Mark absent" onClick={() => setPresence(row, "Absent")} className="grid h-8 w-8 place-items-center rounded-lg border text-rose-600 hover:bg-rose-50"><XCircle className="h-4 w-4" /></button></div></td>
-                </tr>)}</tbody>
+                <thead className="bg-white text-[10px] uppercase tracking-wide text-slate-400 dark:bg-slate-950/30"><tr>{["Employee", "Date", "Punch in", "Punch out", "Hours", "Status", "Approval", "Action"].map((label, index) => <th key={label} className={cn("px-3 py-2 font-bold", index === 0 && "w-[22%]", index === 1 && "w-[12%]", index > 1 && index < 5 && "w-[9%]", index === 5 && "w-[12%]", index === 6 && "w-[18%]", index === 7 && "w-[11%]")}>{label}</th>)}</tr></thead>
+                <tbody className="divide-y">{items.map(({ row, meta }) => <Fragment key={row.__id}>
+                  <tr key={`${row.__id}-row`} className={cn("hover:bg-slate-50/80 dark:hover:bg-slate-900/40", attendanceRowClass(row.Status))}>
+                    <td className="px-3 py-3"><div className="truncate font-semibold">{row.Employee}</div><div className="mt-0.5 truncate text-[10px] text-slate-400">{meta.code} · {meta.title}</div></td>
+                    <td className="px-3 py-3 text-[var(--muted)]">{row.Date}</td>
+                    <td className="px-3 py-3 font-medium">{row["Check in"] || "-"}</td>
+                    <td className="px-3 py-3 font-medium">{row["Check out"] || "-"}</td>
+                    <td className="px-3 py-3">{row.Hours || "0"}</td>
+                    <td className="px-3 py-3"><AttendanceStatus status={row.Status} /></td>
+                    <td className="px-3 py-3">{attendanceNeedsDecision(row) ? <AttendanceDecisionBadge row={row} /> : <span className="text-slate-400">-</span>}</td>
+                    <td className="px-3 py-3"><div className="flex gap-1"><button title="Mark present" onClick={() => setPresence(row, "Present")} className="grid h-8 w-8 place-items-center rounded-lg border text-emerald-600 hover:bg-emerald-50"><CheckCircle2 className="h-4 w-4" /></button><button title="Mark absent" onClick={() => setPresence(row, "Absent")} className="grid h-8 w-8 place-items-center rounded-lg border text-rose-600 hover:bg-rose-50"><XCircle className="h-4 w-4" /></button></div></td>
+                  </tr>
+                  {attendanceNeedsDecision(row) && <tr key={`${row.__id}-detail`} className={attendanceRowClass(row.Status)}><td colSpan={8} className="px-3 pb-3"><AttendanceExceptionDetail row={row} absences={absenceStore.records} onDecision={saveDecision} /></td></tr>}
+                </Fragment>)}</tbody>
               </table>
             </section>) : <EmptyState title="No attendance records found" description="Adjust filters or import the biometric attendance file." />}
           </div>
@@ -160,17 +175,58 @@ function DepartmentButton({ active, name, count, present, onClick }: { active: b
   return <button onClick={onClick} className={cn("mb-2 w-full rounded-xl border p-3 text-left transition", active ? "border-teal-300 bg-teal-50 text-teal-900 dark:border-teal-800 dark:bg-teal-950/40 dark:text-teal-100" : "bg-[var(--panel)] hover:border-slate-300")}>
     <div className="flex items-center gap-2"><span className="min-w-0 flex-1 truncate text-xs font-bold">{name}</span><span className="text-[10px] text-[var(--muted)]">{count}</span></div>
     <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800"><div className="h-full rounded-full bg-teal-500" style={{ width: `${pct}%` }} /></div>
-    <div className="mt-1.5 text-[10px] text-[var(--muted)]">{present} present · {count - present} absent</div>
+    <div className="mt-1.5 text-[10px] text-[var(--muted)]">{present} present · {count - present} exceptions</div>
   </button>;
 }
 
 function AttendanceStatus({ status }: { status?: string }) {
-  const group = attendanceStatusGroup(status);
-  return <span className={cn("inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-bold", group === "Present" ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/15" : "bg-rose-50 text-rose-700 ring-1 ring-rose-600/15")}>{status || "Absent"}</span>;
+  const group = attendanceSeverity(status);
+  return <span className={cn("inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-bold ring-1", group === "Present" && "bg-emerald-50 text-emerald-700 ring-emerald-600/15", group === "Late" && "bg-amber-50 text-amber-700 ring-amber-600/20", group === "Absent" && "bg-rose-50 text-rose-700 ring-rose-600/15")}>{status || "Absent"}</span>;
 }
 
-function attendanceStatusGroup(status?: string) {
-  return status === "Absent" ? "Absent" : "Present";
+function AttendanceDecisionBadge({ row }: { row: DemoRecord }) {
+  const decision = attendanceDecision(row);
+  return <span className={cn("inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold ring-1", decision === "Approve" && "bg-emerald-50 text-emerald-700 ring-emerald-600/15", decision === "Not Approved" && "bg-rose-50 text-rose-700 ring-rose-600/15", decision === "Pending" && "bg-slate-100 text-slate-600 ring-slate-300/50")}>{decision}</span>;
+}
+
+function AttendanceExceptionDetail({ row, absences, onDecision }: { row: DemoRecord; absences: DemoRecord[]; onDecision: (record: DemoRecord, decision: "Approve" | "Not Approved") => void }) {
+  const severity = attendanceSeverity(row.Status);
+  const match = attendanceAbsence(row, absences);
+  const detail = severity === "Absent"
+    ? `Absent: no valid attendance punches for ${row.Date}. ${match?.Reason ? `Reason: ${match.Reason}.` : "Review before payroll processing."}`
+    : `Late: check-in recorded at ${row["Check in"] || "-"}. ${match?.Reason ? `Reason: ${match.Reason}.` : "Review whether this is approved late arrival."}`;
+  return <div className={cn("mt-3 rounded-lg border p-3", severity === "Late" ? "border-amber-200 bg-amber-50/80 text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/20 dark:text-amber-100" : "border-rose-200 bg-rose-50/80 text-rose-900 dark:border-rose-900/60 dark:bg-rose-950/20 dark:text-rose-100")}>
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+      <div className="min-w-0 flex-1"><div className="text-xs font-semibold">{detail}</div><div className="mt-1 text-[11px] opacity-75">Decision: {attendanceDecision(row)}{row["Approval By"] ? ` by ${row["Approval By"]}` : ""}{row["Approval Date"] ? ` on ${row["Approval Date"]}` : ""}</div></div>
+      <div className="flex gap-2"><button onClick={() => onDecision(row, "Approve")} className="rounded-lg border bg-[var(--panel)] px-3 py-1.5 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-50">Approve</button><button onClick={() => onDecision(row, "Not Approved")} className="rounded-lg border bg-[var(--panel)] px-3 py-1.5 text-[11px] font-semibold text-rose-700 hover:bg-rose-50">Not Approved</button></div>
+    </div>
+  </div>;
+}
+
+function attendanceSeverity(status?: string): "Present" | "Late" | "Absent" {
+  const normalized = String(status || "").toLowerCase();
+  if (normalized.includes("absent") || normalized.includes("unapproved absence")) return "Absent";
+  if (normalized.includes("late")) return "Late";
+  return "Present";
+}
+
+function attendanceNeedsDecision(row: Record<string, string>) {
+  return attendanceSeverity(row.Status) !== "Present";
+}
+
+function attendanceDecision(row: Record<string, string>) {
+  return row["Approval Decision"] === "Approve" || row["Approval Decision"] === "Not Approved" ? row["Approval Decision"] : "Pending";
+}
+
+function attendanceRowClass(status?: string) {
+  const severity = attendanceSeverity(status);
+  if (severity === "Late") return "bg-amber-50/45 dark:bg-amber-950/10";
+  if (severity === "Absent") return "bg-rose-50/50 dark:bg-rose-950/10";
+  return "";
+}
+
+function attendanceAbsence(row: Record<string, string>, absences: DemoRecord[]) {
+  return absences.find(absence => absence.Employee === row.Employee && absence.Date === row.Date);
 }
 
 function employeeMeta(name?: string) {
@@ -179,7 +235,7 @@ function employeeMeta(name?: string) {
 }
 
 function payrollImpactForAbsence(row: Record<string, string>, absences: DemoRecord[]) {
-  const match = absences.find(absence => absence.Employee === row.Employee && absence.Date === row.Date);
+  const match = attendanceAbsence(row, absences);
   return numberValue(match?.["Payroll impact"]);
 }
 
@@ -237,7 +293,7 @@ function OperationsWorkspace({ area, views, template, transformSave }: Operation
       notify(validation);
       return;
     }
-    const values = transformSave ? transformSave(input) : input;
+    const values = area === "Leave" && active === "Annual Planner" ? normalizeLeavePlan(input) : transformSave ? transformSave(input) : input;
     if (selectedRecord) store.update(selectedRecord.__id, values); else store.create(values);
     appendAuditLog({ action: selectedRecord ? "UPDATE" : "CREATE", module: `Human Resources - ${area}`, record: values[firstColumn] || active, details: `${active} record ${selectedRecord ? "updated" : "created"}` });
     setModalOpen(false);
@@ -263,6 +319,7 @@ function OperationsWorkspace({ area, views, template, transformSave }: Operation
     }
   };
   const downloadPdf = async () => { if (!selected.length) return; try { const { generateBrandedPdf } = await import("@/lib/pdf/generator"); const record = selected[0]; const documentNumber = (record[firstColumn] || active).replace(/[^a-z0-9-]+/gi,"-"); const pdfColumns = view.formColumns ?? view.columns; const result = await generateBrandedPdf({ template: template(active), documentNumber, date: new Intl.DateTimeFormat("en-GB",{dateStyle:"long"}).format(new Date()), partyLabel: record.Employee || record.Candidate ? "Employee / Candidate" : area, partyName: record.Employee || record.Candidate || record[firstColumn] || active, subject: `${active} details`, metadata: selected.flatMap(item => pdfColumns.map(column => [selected.length > 1 ? `${item[firstColumn]} - ${column}` : column,item[column] || "-"] as [string,string])), terms: ["Generated from the controlled MedTech HR workspace.","Verify approvals before external issue."], preparedBy: getDemoSession()?.name || PRESENTATION_USER_NAME, approvedBy: "HR Manager" },"blob"); if (!(result instanceof Blob)) throw new Error("PDF generator did not return a file"); const url=URL.createObjectURL(result); const anchor=document.createElement("a"); anchor.href=url; anchor.download=`${documentNumber}-${active.toLowerCase().replaceAll(" ","-")}.pdf`; document.body.appendChild(anchor); anchor.click(); anchor.remove(); window.setTimeout(()=>URL.revokeObjectURL(url),1000); appendAuditLog({ action:"PDF",module:`Human Resources - ${area}`,record:documentNumber,details:`${active} detailed PDF generated` }); notify("Detailed PDF generated"); } catch { notify("Unable to generate PDF. Please try again."); } };
+  const leaveApplicationMode = area === "Leave" && active === "Applications";
 
   const stageCounts = active === "Candidates" ? ["New","Screening","Interview","Shortlisted","Offer","Hired"].map(stage => [stage, store.records.filter(row => row.Status === stage).length] as const) : [];
   return <div className="space-y-4">
@@ -271,20 +328,243 @@ function OperationsWorkspace({ area, views, template, transformSave }: Operation
       <div className="flex flex-col gap-3 p-4 lg:flex-row lg:items-center"><div><h2 className="text-base font-bold">{active}</h2><p className="mt-1 text-xs text-[var(--muted)]">{view.helper}</p></div><Button className="lg:ml-auto" onClick={() => open()}><Plus className="h-4 w-4"/>{view.primaryAction}</Button></div>
     </section>
     {stageCounts.length>0&&<section className="grid gap-2 sm:grid-cols-3 xl:grid-cols-6">{stageCounts.map(([stage,count])=><button key={stage} onClick={()=>setStatus(stage)} className="rounded-xl border bg-[var(--panel)] p-3 text-left shadow-soft"><div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">{stage}</div><div className="mt-1 text-xl font-bold">{count}</div></button>)}</section>}
-    <section className="overflow-hidden rounded-2xl border bg-[var(--panel)] shadow-soft">
+    {area === "Leave" && active === "Annual Planner" ? <AnnualLeavePlanner plans={store.records} onOpenPlan={open} /> : <section className="overflow-hidden rounded-2xl border bg-[var(--panel)] shadow-soft">
       <div className="flex flex-wrap items-center gap-2 border-b p-3"><div className="relative min-w-[220px] flex-1 md:max-w-sm"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"/><input aria-label={`Search ${active}`} value={query} onChange={event=>setQuery(event.target.value)} placeholder={`Search ${active.toLowerCase()}...`} className="h-9 w-full rounded-lg border bg-transparent pl-9 pr-3 text-sm outline-none focus:border-teal-500"/></div>{statusValues.length>0&&<select aria-label={`Filter ${active} by status`} value={status} onChange={event=>setStatus(event.target.value)} className="h-9 rounded-lg border bg-[var(--panel)] px-3 text-xs"><option value="All">All statuses</option>{statusValues.map(value=><option key={value}>{value}</option>)}</select>}{active==="Rejoin"&&<><input aria-label="Filter original return date from" type="date" value={rejoinReturnFrom} onChange={event=>setRejoinReturnFrom(event.target.value)} className="h-9 rounded-lg border bg-[var(--panel)] px-3 text-xs"/><input aria-label="Filter original return date to" type="date" value={rejoinReturnTo} onChange={event=>setRejoinReturnTo(event.target.value)} className="h-9 rounded-lg border bg-[var(--panel)] px-3 text-xs"/><input aria-label="Filter actual rejoin date from" type="date" value={rejoinActualFrom} onChange={event=>setRejoinActualFrom(event.target.value)} className="h-9 rounded-lg border bg-[var(--panel)] px-3 text-xs"/><input aria-label="Filter actual rejoin date to" type="date" value={rejoinActualTo} onChange={event=>setRejoinActualTo(event.target.value)} className="h-9 rounded-lg border bg-[var(--panel)] px-3 text-xs"/></>}<div className="ml-auto flex gap-2">{area==="Leave"&&active==="Applications"&&selected.length>0&&<Button variant="danger" onClick={deleteSelected}><Trash2 className="h-4 w-4"/>Delete ({selected.length})</Button>}{selected.length>0&&<Button variant="secondary" onClick={downloadPdf}><FileText className="h-4 w-4"/>PDF ({selected.length})</Button>}{area==="Attendance"&&active==="Daily Attendance"&&<><input ref={importRef} type="file" accept=".xls,.xlsx" className="hidden" onChange={event=>importAttendance(event.target.files?.[0])}/><Button variant="secondary" onClick={()=>importRef.current?.click()}><Upload className="h-4 w-4"/>Import</Button></>}<Button variant="secondary" onClick={exportRows}><Download className="h-4 w-4"/>Excel</Button></div></div>
       {filtered.length ? <div className="overflow-x-auto"><table className="w-full min-w-[1050px] text-left"><thead><tr className="border-b bg-slate-50/80 dark:bg-slate-900/40"><th className="w-12 px-4 py-3"><input aria-label={`Select all ${active}`} type="checkbox" checked={filtered.length>0&&filtered.every(row=>selectedIds.includes(row.__id))} onChange={()=>setSelectedIds(current=>filtered.every(row=>current.includes(row.__id))?current.filter(id=>!filtered.some(row=>row.__id===id)):Array.from(new Set([...current,...filtered.map(row=>row.__id)])))} className="accent-teal-600"/></th>{view.columns.map(column=><th key={column} className="px-4 py-3"><button onClick={()=>toggleSort(column)} className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">{column}{sortColumn===column?(direction==="asc"?<ArrowUp className="h-3 w-3"/>:<ArrowDown className="h-3 w-3"/>):<ArrowUpDown className="h-3 w-3 opacity-40"/>}</button></th>)}<th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">Action</th></tr></thead><tbody className="divide-y">{filtered.map(row=><tr key={row.__id} onDoubleClick={()=>open(row)} className={cn("cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900/40",selectedIds.includes(row.__id)&&"bg-teal-50/60 dark:bg-teal-950/20")}><td className="px-4 py-3"><input aria-label={`Select ${row[firstColumn]}`} type="checkbox" checked={selectedIds.includes(row.__id)} onChange={()=>setSelectedIds(current=>current.includes(row.__id)?current.filter(id=>id!==row.__id):[...current,row.__id])} className="accent-teal-600"/></td>{view.columns.map((column,index)=><td key={column} className={cn("px-4 py-3 text-xs",index===0?"font-semibold":"text-[var(--muted)]")}>{column==="Status"?<StatusBadge>{row[column]}</StatusBadge>:row[column]}</td>)}<td className="px-4 py-3"><button onClick={()=>open(row)} className="rounded-lg border px-2.5 py-1 text-[11px] font-semibold text-teal-700 hover:bg-teal-50 dark:hover:bg-teal-950/30">View</button></td></tr>)}</tbody></table></div> : <EmptyState title={`No ${active.toLowerCase()} found`} description="Adjust the search or filters, or create a new record." />}
       <div className="flex justify-between border-t px-4 py-3 text-[11px] text-slate-400"><span>{selected.length?`${selected.length} selected - `:""}Showing {filtered.length} of {store.records.length}</span><span>Use View or double-click a row to edit</span></div>
-    </section>
-    <RecordModal open={modalOpen} title={selectedRecord?`Edit ${active}`:view.primaryAction} columns={view.columns} formColumns={view.formColumns} selectOptions={view.selectOptions} defaultValues={view.defaultValues} fieldTypes={modalFieldTypes} suggestions={modalSuggestions} record={selectedRecord} onClose={()=>{setModalOpen(false);setSelectedRecord(null);}} onSave={save} onDelete={selectedRecord?remove:undefined}/>
+    </section>}
+    <RecordModal open={modalOpen} title={selectedRecord?`Edit ${active}`:view.primaryAction} columns={view.columns} formColumns={view.formColumns} selectOptions={view.selectOptions} defaultValues={view.defaultValues} fieldTypes={modalFieldTypes} suggestions={modalSuggestions} record={selectedRecord} deriveValues={leaveApplicationMode ? deriveLeaveApplicationValues : undefined} preview={leaveApplicationMode ? values => <LeaveApplicationPreview values={values} /> : undefined} onClose={()=>{setModalOpen(false);setSelectedRecord(null);}} onSave={save} onDelete={selectedRecord?remove:undefined}/>
     {toast&&<div role="status" className="fixed bottom-5 right-5 z-[120] flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-xs font-medium text-white shadow-panel"><CheckCircle2 className="h-4 w-4 text-teal-400"/>{toast}</div>}
   </div>;
 }
 
+type LeavePlannerRow = {
+  id: string;
+  plan?: DemoRecord;
+  source: "Planner" | "Application";
+  planNo: string;
+  employeeCode: string;
+  employee: string;
+  department: string;
+  leaveType: string;
+  from: string;
+  to: string;
+  days: string;
+  status: string;
+};
+
+function AnnualLeavePlanner({ plans, onOpenPlan }: { plans: DemoRecord[]; onOpenPlan: (record?: DemoRecord) => void }) {
+  const applications = useDemoRecords("hr-operations:Leave:Applications", leaveViews.Applications.rows);
+  const session = getDemoSession();
+  const canViewAll = canViewAllLeaveDepartments(session?.role);
+  const ownDepartment = session?.department || "Executive";
+  const [department, setDepartment] = useState("All");
+  const [status, setStatus] = useState("All");
+  const [query, setQuery] = useState("");
+  const rows = useMemo(() => leavePlannerRows(plans, applications.records), [plans, applications.records]);
+  const departments = useMemo(() => Array.from(new Set(rows.map(row => row.department).filter(Boolean))).sort(), [rows]);
+  const visibleDepartment = canViewAll ? department : ownDepartment;
+  const filtered = useMemo(() => rows.filter(row => {
+    const departmentMatch = visibleDepartment === "All" || row.department === visibleDepartment;
+    const statusMatch = status === "All" || row.status === status;
+    const searchMatch = !query || [row.employee, row.employeeCode, row.department, row.leaveType, row.status].some(value => value.toLowerCase().includes(query.toLowerCase()));
+    return departmentMatch && statusMatch && searchMatch;
+  }).sort((a, b) => a.department.localeCompare(b.department) || dateSortValue(a.from).localeCompare(dateSortValue(b.from)) || a.employee.localeCompare(b.employee)), [rows, visibleDepartment, status, query]);
+  const grouped = useMemo(() => groupBy(filtered, row => row.department || "Unassigned"), [filtered]);
+  const statuses = useMemo(() => Array.from(new Set(rows.map(row => row.status).filter(Boolean))).sort(), [rows]);
+  const overlapCount = filtered.filter(row => leavePlannerOverlaps(row, filtered).length > 0).length;
+  const exportPlanner = () => {
+    exportToExcel(filtered.map(row => ({
+      "Employee Code": row.employeeCode,
+      Employee: row.employee,
+      Department: row.department,
+      "Leave type": row.leaveType,
+      From: row.from,
+      To: row.to,
+      Days: row.days,
+      Status: row.status,
+      Source: row.source
+    })), "medtech-annual-leave-planner", "Annual Planner");
+    appendAuditLog({ action: "EXPORT", module: "Human Resources - Leave", record: "Annual Planner", details: `${filtered.length} planner visibility rows exported` });
+  };
+
+  return <section className="overflow-hidden rounded-2xl border bg-[var(--panel)] shadow-soft">
+    <div className="border-b bg-slate-50/70 p-4 dark:bg-slate-900/30">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+        <div><h3 className="text-base font-bold">Department leave visibility</h3><p className="mt-1 text-xs text-[var(--muted)]">Planning view only. Apply Leave remains the approval process.</p></div>
+        <div className="grid gap-2 sm:grid-cols-3 lg:ml-auto lg:w-[420px]">
+          <PlannerMetric label="Rows" value={filtered.length} />
+          <PlannerMetric label="Departments" value={visibleDepartment === "All" ? departments.length : 1} />
+          <PlannerMetric label="Overlaps" value={overlapCount} />
+        </div>
+      </div>
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <div className="relative min-w-[220px] flex-1 md:max-w-sm"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input aria-label="Search annual leave planner" value={query} onChange={event => setQuery(event.target.value)} placeholder="Search employee, code, department..." className="h-9 w-full rounded-lg border bg-[var(--panel)] pl-9 pr-3 text-sm outline-none focus:border-teal-500" /></div>
+        <select aria-label="Filter annual leave by department" value={visibleDepartment} disabled={!canViewAll} onChange={event => setDepartment(event.target.value)} className="h-9 rounded-lg border bg-[var(--panel)] px-3 text-xs disabled:opacity-70">{canViewAll && <option value="All">All departments</option>}{(canViewAll ? departments : [ownDepartment]).map(name => <option key={name}>{name}</option>)}</select>
+        <select aria-label="Filter annual leave by status" value={status} onChange={event => setStatus(event.target.value)} className="h-9 rounded-lg border bg-[var(--panel)] px-3 text-xs"><option value="All">All statuses</option>{statuses.map(value => <option key={value}>{value}</option>)}</select>
+        <Button variant="secondary" onClick={exportPlanner}><Download className="h-4 w-4" />Excel</Button>
+      </div>
+    </div>
+    <div className="max-h-[620px] overflow-auto">
+      {filtered.length ? Array.from(grouped.entries()).map(([name, items]) => <section key={name} className="border-b last:border-b-0">
+        <div className="sticky top-0 z-10 flex items-center gap-3 border-b bg-slate-50/95 px-4 py-2 backdrop-blur dark:bg-slate-900/95"><UsersRound className="h-4 w-4 text-teal-600" /><div className="font-semibold">{name}</div><div className="ml-auto text-[11px] text-[var(--muted)]">{items.length} leave plan{items.length === 1 ? "" : "s"}</div></div>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[1050px] text-left text-xs">
+            <thead><tr className="border-b bg-white text-[10px] uppercase tracking-wide text-slate-400 dark:bg-slate-950/30">{["Employee", "Department", "Leave dates", "Days", "Leave type", "Status", "Overlap", "Source"].map(label => <th key={label} className="px-4 py-3 font-bold">{label}</th>)}</tr></thead>
+            <tbody className="divide-y">{items.map(row => {
+              const overlaps = leavePlannerOverlaps(row, rows);
+              return <tr key={row.id} className={cn("hover:bg-slate-50/80 dark:hover:bg-slate-900/40", overlaps.length && "bg-amber-50/45 dark:bg-amber-950/10")}>
+                <td className="px-4 py-3"><div className="font-semibold">{row.employee}</div><div className="mt-0.5 text-[10px] text-slate-400">{row.employeeCode}</div></td>
+                <td className="px-4 py-3 text-[var(--muted)]">{row.department}</td>
+                <td className="px-4 py-3"><div className="font-medium">{row.from}</div><div className="mt-0.5 text-[10px] text-slate-400">to {row.to}</div></td>
+                <td className="px-4 py-3">{row.days}</td>
+                <td className="px-4 py-3">{row.leaveType || "-"}</td>
+                <td className="px-4 py-3"><StatusBadge>{row.status}</StatusBadge></td>
+                <td className="px-4 py-3">{overlaps.length ? <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-bold text-amber-700 ring-1 ring-amber-600/20">{overlaps.map(item => item.employee).join(", ")}</span> : <span className="text-slate-400">None</span>}</td>
+                <td className="px-4 py-3">{row.plan ? <button onClick={() => onOpenPlan(row.plan)} className="rounded-lg border px-2.5 py-1 text-[11px] font-semibold text-teal-700 hover:bg-teal-50">Planner</button> : <span className="rounded-lg border px-2.5 py-1 text-[11px] font-semibold text-slate-500">Apply Leave</span>}</td>
+              </tr>;
+            })}</tbody>
+          </table>
+        </div>
+      </section>) : <EmptyState title="No leave plans found" description="Adjust filters or create a planner row for your department." />}
+    </div>
+  </section>;
+}
+
+function PlannerMetric({ label, value }: { label: string; value: string | number }) {
+  return <div className="rounded-xl border bg-[var(--panel)] p-3"><div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">{label}</div><div className="mt-1 text-lg font-bold">{value}</div></div>;
+}
+
+function leavePlannerRows(plans: DemoRecord[], applications: DemoRecord[]): LeavePlannerRow[] {
+  return [
+    ...plans.map(row => {
+      const employee = findEmployee(row["Employee Code"], row.Employee);
+      return {
+        id: `plan-${row.__id}`,
+        plan: row,
+        source: "Planner" as const,
+        planNo: row.Plan || "",
+        employeeCode: row["Employee Code"] || employee?.["Employee No"] || "",
+        employee: row.Employee || employee?.["Full Name"] || "",
+        department: row.Department || employee?.Department || "Unassigned",
+        leaveType: row["Leave type"] || "Annual leave",
+        from: row.From || "",
+        to: row.To || row.From || "",
+        days: row.Days || String(calculateInclusiveDays(row.From, row.To || row.From) || 1),
+        status: leavePlannerStatus(row.Status)
+      };
+    }),
+    ...applications.map(row => {
+      const employee = findEmployee(row["Employee Code"], row.Employee);
+      return {
+        id: `application-${row.__id}`,
+        source: "Application" as const,
+        planNo: row.Request || "",
+        employeeCode: row["Employee Code"] || employee?.["Employee No"] || "",
+        employee: row.Employee || employee?.["Full Name"] || "",
+        department: row.Department || employee?.Department || "Unassigned",
+        leaveType: row["Leave type"] || "Annual leave",
+        from: row.From || "",
+        to: row.To || row.From || "",
+        days: row.Days || String(calculateInclusiveDays(row.From, row.To || row.From) || 1),
+        status: leavePlannerStatus(row.Status, true)
+      };
+    })
+  ];
+}
+
+function leavePlannerStatus(status?: string, fromApplication = false) {
+  if (status === "Approved" || status === "Rejected" || status === "Planned") return status;
+  return fromApplication ? "Applied" : "Planned";
+}
+
+function leavePlannerOverlaps(row: LeavePlannerRow, rows: LeavePlannerRow[]) {
+  return rows.filter(item => item.id !== row.id && item.department === row.department && leaveDateRangesOverlap(row, item));
+}
+
+function leaveDateRangesOverlap(left: LeavePlannerRow, right: LeavePlannerRow) {
+  const leftFrom = dateFromValue(left.from);
+  const leftTo = dateFromValue(left.to);
+  const rightFrom = dateFromValue(right.from);
+  const rightTo = dateFromValue(right.to);
+  if (!leftFrom || !leftTo || !rightFrom || !rightTo) return false;
+  return leftFrom <= rightTo && rightFrom <= leftTo;
+}
+
+function canViewAllLeaveDepartments(role?: string) {
+  const normalized = String(role || "").toLowerCase();
+  return normalized.includes("admin") || normalized.includes("hr");
+}
+
+function LeaveApplicationPreview({ values }: { values: Record<string, string> }) {
+  const warning = leaveBalanceWarning(values);
+  return <div className={cn("sm:col-span-2 rounded-xl border p-4", warning ? "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/20 dark:text-amber-100" : "bg-slate-50 dark:bg-slate-900/40")}>
+    <div className="grid gap-3 sm:grid-cols-3">
+      <PreviewStat label="Available balance" value={values["Available balance"] || "0 days"} />
+      <PreviewStat label="Selected days" value={`${numberValue(values.Days)} days`} />
+      <PreviewStat label="Remaining balance" value={values["Remaining balance"] || "0 days"} />
+    </div>
+    {warning && <div className="mt-3 text-xs font-semibold">{warning}</div>}
+  </div>;
+}
+
+function PreviewStat({ label, value }: { label: string; value: string }) {
+  return <div><div className="text-[10px] font-semibold uppercase tracking-wide opacity-70">{label}</div><div className="mt-1 text-base font-bold">{value}</div></div>;
+}
+
+function deriveLeaveApplicationValues(values: Record<string, string>) {
+  const employee = findEmployee(values["Employee Code"], values.Employee);
+  const from = normalizeLeaveDate(values.From);
+  const to = normalizeLeaveDate(values.To || values.From);
+  const days = values.From && values.To ? calculateInclusiveDays(from, to) || 1 : numberValue(values.Days) || 1;
+  const available = availableLeaveBalance(values, employee);
+  const remaining = leaveBalanceRequired(values["Leave type"]) ? available - days : available;
+  return {
+    ...values,
+    "Employee Code": values["Employee Code"] || employee?.["Employee No"] || "",
+    Employee: values.Employee || employee?.["Full Name"] || "",
+    Department: values.Department || employee?.Department || "",
+    Designation: values.Designation || employee?.["Job Title"] || "",
+    "Date of Employment": values["Date of Employment"] || employee?.["Date Joined"] || "",
+    Contact: values.Contact || employee?.["Mobile No"] || "",
+    Email: values.Email || employee?.["Email Address"] || "",
+    Days: String(days),
+    "Available balance": `${available} days`,
+    "Remaining balance": `${remaining} days`,
+    Balance: `${remaining} days`
+  };
+}
+
+function leaveBalanceWarning(values: Record<string, string>) {
+  if (!leaveBalanceRequired(values["Leave type"])) return "";
+  const selected = numberValue(values.Days);
+  const available = numberValue(values["Available balance"]);
+  return selected > available ? `Selected leave days exceed available balance by ${selected - available} day(s).` : "";
+}
+
+function leaveBalanceRequired(leaveType?: string) {
+  return !String(leaveType || "").toLowerCase().includes("unpaid");
+}
+
+function availableLeaveBalance(values: Record<string, string>, employee?: Record<string, string>) {
+  const existing = numberValue(values["Available balance"]);
+  if (existing) return existing;
+  const employeeBalance = employee ? currentLeaveBalanceFor(employee) : 0;
+  if (employeeBalance) return employeeBalance;
+  return leavePolicyEntitlement(values["Leave type"]);
+}
+
+function leavePolicyEntitlement(leaveType?: string) {
+  const normalized = String(leaveType || "Annual leave").toLowerCase();
+  const policy = leaveViews["Leave Policies"].rows.find(row => row["Leave type"].toLowerCase() === normalized);
+  return numberValue(policy?.Entitlement);
+}
+
 function fieldTypesFor(area: string, active: string): Record<string, RecordFieldType> {
+  if (area === "Leave" && active === "Annual Planner") return { From: "date", To: "date" };
   if (area === "Leave" && active === "Applications") return { From: "date", To: "date" };
   if (area === "Leave" && active === "Approvals") return { "Approved from": "date", "Approved to": "date", "Decision date": "date" };
-  if (area === "Leave" && active === "Job Handover") return { "Accepted at": "date" };
+  if (area === "Leave" && active === "Leave Handover") return { "Accepted at": "date" };
   if (area === "Leave" && active === "Clearance") return { "Completed at": "date" };
   if (area === "Leave" && active === "Rejoin") return { "Original return date": "date", "Actual rejoin date": "date" };
   return {};
@@ -299,7 +579,7 @@ function suggestionsFor(area: string, active: string): Record<string, RecordFiel
       }))
     };
   }
-  if (area !== "Leave" || !["Applications", "Job Handover"].includes(active)) return {};
+  if (area !== "Leave" || !["Annual Planner", "Applications", "Leave Handover"].includes(active)) return {};
   const employeeSuggestions = hrEmployees.map(employee => ({
     value: employee["Full Name"],
     label: `${employee["Employee No"]} - ${employee.Department} - ${employee["Job Title"]}`,
@@ -331,14 +611,16 @@ function suggestionsFor(area: string, active: string): Record<string, RecordFiel
   const handoverEmployeeSuggestions = hrEmployees.map(employee => ({
     value: employee["Full Name"],
     label: `${employee["Employee No"]} - ${employee.Department}`,
+    department: employee.Department,
     fill: { "Handover to code": employee["Employee No"], "Handover to": employee["Full Name"] }
   }));
   const handoverCodeSuggestions = hrEmployees.map(employee => ({
     value: employee["Employee No"],
     label: `${employee["Full Name"]} - ${employee.Department}`,
+    department: employee.Department,
     fill: { "Handover to code": employee["Employee No"], "Handover to": employee["Full Name"] }
   }));
-  if (active === "Job Handover") {
+  if (active === "Leave Handover") {
     return {
       Employee: employeeSuggestions,
       "Employee Code": employeeCodeSuggestions,
@@ -346,14 +628,30 @@ function suggestionsFor(area: string, active: string): Record<string, RecordFiel
       "Handover to code": handoverCodeSuggestions
     };
   }
+  if (active === "Annual Planner") {
+    return {
+      Employee: employeeSuggestions,
+      "Employee Code": employeeCodeSuggestions
+    };
+  }
   return {
     Employee: employeeSuggestions,
-    "Employee Code": employeeCodeSuggestions
+    "Employee Code": employeeCodeSuggestions,
+    "Handover to": handoverEmployeeSuggestions,
+    "Handover to code": handoverCodeSuggestions
   };
 }
 
 function validateOperationRecord(area: string, active: string, values: Record<string, string>) {
   if (area !== "Leave") return "";
+  if (active === "Annual Planner") {
+    if (!values.Employee && !values["Employee Code"]) return "Select an employee name or employee code.";
+    if (!values.From || !values.To) return "Select planned leave from and to dates.";
+    const from = dateFromValue(values.From);
+    const to = dateFromValue(values.To);
+    if (!from || !to) return "Enter valid planned leave dates.";
+    if (to < from) return "Planned leave to date cannot be before from date.";
+  }
   if (active === "Applications") {
     if (!values.Employee && !values["Employee Code"]) return "Select an employee name or employee code.";
     if (!values.From || !values.To) return "Select leave from and to dates.";
@@ -361,12 +659,34 @@ function validateOperationRecord(area: string, active: string, values: Record<st
     const to = dateFromValue(values.To);
     if (!from || !to) return "Enter valid leave dates.";
     if (to < from) return "Leave to date cannot be before from date.";
+    const derived = deriveLeaveApplicationValues(values);
+    const warning = leaveBalanceWarning(derived);
+    if (warning) return warning;
   }
   if (active === "Approvals" && !values.Request) return "Approval must be linked to a leave request.";
-  if (active === "Job Handover" && !values.Request) return "Job handover must be linked to a leave request.";
+  if (active === "Leave Handover" && !values.Request) return "Leave handover must be linked to a leave request.";
   if (active === "Clearance" && !values.Request) return "Clearance must be linked to a leave request.";
   if (active === "Rejoin" && !values.Request) return "Rejoin must be linked to a leave request.";
   return "";
+}
+
+function normalizeLeavePlan(values: Record<string, string>): Record<string, string> {
+  const employee = findEmployee(values["Employee Code"], values.Employee);
+  const from = normalizeLeaveDate(values.From);
+  const to = normalizeLeaveDate(values.To || values.From);
+  const days = calculateInclusiveDays(from, to) || numberValue(values.Days) || 1;
+  return {
+    ...values,
+    Plan: !values.Plan?.trim() || values.Plan === "Auto generated" ? nextLeavePlanNo() : values.Plan.trim(),
+    "Employee Code": values["Employee Code"] || employee?.["Employee No"] || "",
+    Employee: values.Employee || employee?.["Full Name"] || "",
+    Department: values.Department || employee?.Department || "",
+    "Leave type": values["Leave type"] || "Annual leave",
+    From: formatDisplayDate(from),
+    To: formatDisplayDate(to),
+    Days: String(days),
+    Status: leavePlannerStatus(values.Status)
+  };
 }
 
 function transformLeaveSave(values: Record<string, string>) {
@@ -393,7 +713,7 @@ function normalizeLeaveApplication(values: Record<string, string>) {
   const from = normalizeLeaveDate(values.From);
   const to = normalizeLeaveDate(values.To || values.From);
   const days = calculateInclusiveDays(from, to) || numberValue(values.Days) || 1;
-  const balance = values.Balance?.trim() || `${Math.max(0, 30 - days)} days`;
+  const derived = deriveLeaveApplicationValues({ ...values, From: formatDisplayDate(from), To: formatDisplayDate(to), Days: String(days) });
   return {
     ...values,
     Request: !values.Request?.trim() || values.Request === "Auto generated" ? nextLeaveRequestNo() : values.Request.trim(),
@@ -405,14 +725,20 @@ function normalizeLeaveApplication(values: Record<string, string>) {
     From: formatDisplayDate(from),
     To: formatDisplayDate(to),
     Days: String(days),
-    Balance: balance,
+    "Available balance": derived["Available balance"],
+    "Remaining balance": derived["Remaining balance"],
+    Balance: derived.Balance,
     Purpose: values.Purpose || "",
     Destination: values.Destination || "",
     "Travel from": values["Travel from"] || "",
     "Travel to": values["Travel to"] || "",
     Contact: values.Contact || employee?.["Mobile No"] || "",
     Email: values.Email || employee?.["Email Address"] || "",
-    "Handover to": values["Handover to"] || employee?.["Line Manager"] || "",
+    "Handover to code": values["Handover to code"] || "",
+    "Handover to": values["Handover to"] || "",
+    "Handover notes / tasks": values["Handover notes / tasks"] || values.Purpose || "",
+    "Clearance checklist": values["Clearance checklist"] || "Manager handover review pending",
+    "Clearance status": values["Clearance status"] || "pending",
     Status: values.Status || "Draft"
   };
 }
@@ -477,7 +803,7 @@ function syncApplicationFromApproval(approval: Record<string, string>) {
 function removeLinkedLeaveRecords(requestNumbers: string[]) {
   if (!requestNumbers.length) return;
   const removeSet = new Set(requestNumbers);
-  (["Approvals", "Job Handover", "Clearance", "Rejoin"] as const).forEach(tab => {
+  (["Approvals", "Leave Handover", "Clearance", "Rejoin"] as const).forEach(tab => {
     const moduleKey = `hr-operations:Leave:${tab}`;
     const records = readDemoRecordsSnapshot(moduleKey, leaveViews[tab].rows);
     writeDemoRecordsSnapshot(moduleKey, records.filter(row => !removeSet.has(row.Request)));
@@ -494,14 +820,14 @@ function syncLeaveDependentsFromApplication(application: Record<string, string>)
 
   if (shouldSyncApproval(application.Status) && application["Handover to"]) {
     const handoverEmployee = findEmployee("", application["Handover to"]);
-    upsertLeaveRecord("Job Handover", request, {
+    upsertLeaveRecord("Leave Handover", request, {
       Request: request,
       "Employee Code": application["Employee Code"],
       Employee: application.Employee,
       "Leave dates": `${application.From} - ${application.To}`,
-      "Handover to code": handoverEmployee?.["Employee No"] || application["Handover to Employee Code"] || "",
+      "Handover to code": handoverEmployee?.["Employee No"] || application["Handover to code"] || "",
       "Handover to": application["Handover to"],
-      "Tasks / notes": application.Purpose ? `Cover during leave: ${application.Purpose}` : "Review duties before departure.",
+      "Tasks / notes": application["Handover notes / tasks"] || (application.Purpose ? `Cover during leave: ${application.Purpose}` : "Review duties before departure."),
       Attachment: "",
       Status: application.Status === "Approved" ? "Accepted" : "Pending acceptance",
       "Accepted at": application.Status === "Approved" ? formatDemoDateTime(new Date()) : ""
@@ -515,9 +841,9 @@ function syncLeaveDependentsFromApplication(application: Record<string, string>)
       Employee: application.Employee,
       Department: application.Department,
       "Leave dates": `${application.From} - ${application.To}`,
-      "Clearance items": "Leave approved; handover and contact details reviewed",
+      "Clearance items": application["Clearance checklist"] || "Leave approved; handover and contact details reviewed",
       "Responsible person": "HR Manager",
-      Status: "pending",
+      Status: application["Clearance status"] || "pending",
       Comments: "",
       "Completed at": ""
     });
@@ -540,14 +866,14 @@ function syncLeaveDependentsFromApplication(application: Record<string, string>)
 function removeLinkedLeaveDependents(requestNumbers: string[]) {
   if (!requestNumbers.length) return;
   const removeSet = new Set(requestNumbers);
-  (["Job Handover", "Clearance", "Rejoin"] as const).forEach(tab => {
+  (["Leave Handover", "Clearance", "Rejoin"] as const).forEach(tab => {
     const moduleKey = `hr-operations:Leave:${tab}`;
     const records = readDemoRecordsSnapshot(moduleKey, leaveViews[tab].rows);
     writeDemoRecordsSnapshot(moduleKey, records.filter(row => !removeSet.has(row.Request)));
   });
 }
 
-function upsertLeaveRecord(tab: "Job Handover" | "Clearance" | "Rejoin", request: string, values: Record<string, string>) {
+function upsertLeaveRecord(tab: "Leave Handover" | "Clearance" | "Rejoin", request: string, values: Record<string, string>) {
   const moduleKey = `hr-operations:Leave:${tab}`;
   const records = readDemoRecordsSnapshot(moduleKey, leaveViews[tab].rows);
   const existing = records.find(row => row.Request === request);
@@ -574,6 +900,10 @@ function findEmployee(employeeCode?: string, employeeName?: string) {
 
 function nextLeaveRequestNo() {
   return `LV-${new Date().getFullYear()}-${String(Date.now() % 100000).padStart(5, "0")}`;
+}
+
+function nextLeavePlanNo() {
+  return `LVP-${new Date().getFullYear()}-${String(Date.now() % 10000).padStart(4, "0")}`;
 }
 
 function decisionNoFor(requestNo: string) {
@@ -648,6 +978,14 @@ function isDateColumn(column: string) {
 
 function formatDemoDateTime(date: Date) {
   return `${date.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}, ${date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`;
+}
+
+function groupBy<T>(items: T[], keyFor: (item: T) => string) {
+  return items.reduce((groups, item) => {
+    const key = keyFor(item);
+    groups.set(key, [...(groups.get(key) ?? []), item]);
+    return groups;
+  }, new Map<string, T[]>());
 }
 
 export function PayrollWorkspace() {
@@ -810,20 +1148,35 @@ function MonthlyPayroll() {
     }
   };
   const finalize = () => {
+    const session = getDemoSession();
     const finalRows = applyLoanDeductions(rows, loans, Number(month), Number(year));
     const finalResults = finalRows.map(row => calculateMonthlyPayrollLine(row, defaultPayrollSettings, calendarDays));
     const finalTotals = finalResults.reduce((sum, result) => ({ gross: sum.gross + result.salaryPayable, deductions: sum.deductions + result.totalDeductions, net: sum.net + result.netPay }), { gross: 0, deductions: 0, net: 0 });
     const errors = validateMonthlyPayroll(finalRows, finalResults);
+    const permission = permissionError(session, "Payroll", "finalize/post/lock");
+    const segregation = segregationWarning({ action: "approve", moduleName: "Payroll", record: currentRun, session });
+    if (permission) errors.unshift(permission);
+    if (segregation) errors.unshift(segregation);
     if (!canFinalize) errors.unshift("Only Super Admin, HR Manager, or Payroll Manager can finalize payroll.");
     if (!runId) errors.unshift("Create a draft before finalizing.");
+    if (!hasApprovedApproval("Human Resources - Payroll", runKey, "Payroll finalization")) errors.unshift("Payroll finalization approval is required.");
     if (errors.length) { setMessages(errors); return; }
     runs.update(runId, monthlyRunRecord(runKey, company, month, year, department, finalRows, finalResults, "Finalized", currentRun));
     updateLoans(markPayrollInstallmentsDeducted(loans, finalRows.map(row => row.employeeCode), Number(month), Number(year), runKey));
+    const journalLines = writePayrollAccountingDrafts(runKey, finalRows, finalResults);
     setRows(finalRows);
     setStatus("Finalized");
-    setMessages(["Payroll finalized and locked."]);
-    appendAuditLog({ action: "FINALIZE PAYROLL", module: "Human Resources - Payroll", record: runKey, details: `Net payroll ${qar(finalTotals.net)}` });
+    setMessages([`Payroll finalized and locked. ${journalLines.length} cost center draft journal line${journalLines.length === 1 ? "" : "s"} created.`]);
+    appendAuditLog({ action: "FINALIZE PAYROLL", module: "Human Resources - Payroll", record: runKey, details: `Net payroll ${qar(finalTotals.net)}; ${journalLines.length} cost center draft journal lines` });
     notify("Payroll finalized");
+  };
+  const submitPayrollApproval = () => {
+    const permission = permissionError(getDemoSession(), "Approvals", "create");
+    if (permission) { setMessages([permission]); return; }
+    if (!runId || status !== "Validated") { setMessages(["Validate payroll before submitting approval."]); return; }
+    const result = submitApprovalRequest({ sourceModule: "Human Resources - Payroll", sourceRecord: runKey, requestType: "Payroll finalization", requestedBy: getDemoSession()?.name || PRESENTATION_USER_NAME, amount: totals.net, businessUnit: department });
+    setMessages([result.message]);
+    notify(result.message);
   };
   const cancel = () => {
     if (!runId || status === "Finalized") { setMessages([status === "Finalized" ? "Use admin cancellation with a reason for finalized payroll." : "Create a draft before cancelling."]); return; }
@@ -915,6 +1268,7 @@ function MonthlyPayroll() {
             <Button variant="danger" onClick={cancel}>Cancel</Button>
           </>}
           {status === "Validated" && <>
+            <Button variant="secondary" onClick={submitPayrollApproval}>Submit Approval</Button>
             <Button onClick={finalize}>Finalize</Button>
             <Button variant="secondary" onClick={backToDraft}>Back to Draft</Button>
           </>}
@@ -1487,6 +1841,40 @@ function upsertSnapshot(moduleKey: string, seedRows: Array<Record<string, string
   const nextRows = rows.map((row, index) => byKey.has(row[key]) ? { ...byKey.get(row[key])!, ...row } : createDemoRecord(row, index));
   const rowKeys = new Set(rows.map(row => row[key]));
   writeDemoRecordsSnapshot(moduleKey, [...nextRows, ...current.filter(row => !rowKeys.has(row[key]))]);
+}
+
+function writePayrollAccountingDrafts(runKey: string, rows: MonthlyPayrollRow[], results: ReturnType<typeof calculateMonthlyPayrollLine>[]) {
+  const lines = rows.map((row, rowIndex) => ({
+    "Journal No": nextPayrollJournalLineNo(rowIndex, 0),
+    "Payroll Run": runKey,
+    "Employee Code": row.employeeCode,
+    "Employee Name": row.employeeName,
+    "Cost Center": payrollCostCenter(row),
+    "Allocation %": "100",
+    Amount: qar(results[rowIndex]?.salaryPayable || row.grossSalary),
+    "Finance Journal Draft": "Draft",
+    Status: "Generated"
+  }));
+  const totalsByCostCenter = lines.reduce((map, line) => map.set(line["Cost Center"], (map.get(line["Cost Center"]) || 0) + numberValue(line.Amount)), new Map<string, number>());
+  const financeDrafts = new Map(Array.from(totalsByCostCenter.entries()).map(([costCenter, amount]) => {
+    const journal = writeFinanceJournalDraft({ sourceModule: "Payroll", sourceRecord: `${runKey}-${costCenter}`, amount: qar(amount), debit: `Salary expense - ${costCenter}`, credit: "Payroll payable", costCenter, notes: "Payroll cost center split draft only - no real GL posting" });
+    return [costCenter, journal["Journal No"]];
+  }));
+  const enriched = lines.map(line => ({ ...line, "Finance Journal Draft": financeDrafts.get(line["Cost Center"]) || "Draft" }));
+  const moduleKey = "hr-enterprise:Payroll Accounting Draft Journal";
+  const current = readDemoRecordsSnapshot(moduleKey, hrViews["Payroll Accounting Draft Journal"].rows);
+  writeDemoRecordsSnapshot(moduleKey, [...enriched.map(createDemoRecord), ...current.filter(row => row["Payroll Run"] !== runKey)]);
+  appendAuditLog({ action: "PAYROLL ACCOUNTING DRAFT", module: "Human Resources - Payroll", record: runKey, details: `${enriched.length} employee payroll draft lines generated locally` });
+  return enriched;
+}
+
+function payrollCostCenter(row: MonthlyPayrollRow) {
+  const employee = hrEmployees.find(item => item["Employee No"] === row.employeeCode || item["Full Name"] === row.employeeName);
+  return employee?.["Cost Centre"] || row.department || "Payroll";
+}
+
+function nextPayrollJournalLineNo(rowIndex: number, splitIndex: number) {
+  return `PAY-JRN-${new Date().getFullYear()}-${String(Date.now() % 10000).padStart(4, "0")}-${rowIndex + 1}${splitIndex + 1}`;
 }
 
 function employeeToMonthlyPayrollRow(employee: Record<string, string>, period: string, calendarDays: number, loans: Array<Pick<LoanRecord, "Employee Code" | "Status" | "Schedule">> = [], month = 0, year = 0): MonthlyPayrollRow {
