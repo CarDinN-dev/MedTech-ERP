@@ -6,10 +6,14 @@ export async function updateSession(request: NextRequest) {
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const path = request.nextUrl.pathname;
   const isAuthRoute = path.startsWith("/login") || path.startsWith("/auth");
+  const isApiRoute = path.startsWith("/api/");
   const isPublicApi = path === "/api/health";
   if (!url || !key) {
     const demoSession = request.cookies.get("medtech_demo_session")?.value;
-    if (!demoSession && !isAuthRoute && !isPublicApi) { const redirect = request.nextUrl.clone(); redirect.pathname = "/login"; redirect.searchParams.set("next", path); return NextResponse.redirect(redirect); }
+    if (!demoSession && !isAuthRoute && !isPublicApi) {
+      if (isApiRoute) return unauthorizedApi();
+      const redirect = request.nextUrl.clone(); redirect.pathname = "/login"; redirect.searchParams.set("next", path); return NextResponse.redirect(redirect);
+    }
     if (demoSession && path === "/login") { const redirect = request.nextUrl.clone(); redirect.pathname = "/"; redirect.search = ""; return NextResponse.redirect(redirect); }
     return NextResponse.next({ request });
   }
@@ -19,7 +23,14 @@ export async function updateSession(request: NextRequest) {
     setAll: (values: { name: string; value: string; options?: CookieOptions }[]) => { values.forEach(({ name, value }) => request.cookies.set(name, value)); response = NextResponse.next({ request }); values.forEach(({ name, value, options }) => response.cookies.set(name, value, options)); }
   }});
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user && !isAuthRoute) { const redirect = request.nextUrl.clone(); redirect.pathname = "/login"; redirect.searchParams.set("next", request.nextUrl.pathname); return NextResponse.redirect(redirect); }
+  if (!user && !isAuthRoute) {
+    if (isApiRoute && !isPublicApi) return unauthorizedApi();
+    const redirect = request.nextUrl.clone(); redirect.pathname = "/login"; redirect.searchParams.set("next", request.nextUrl.pathname); return NextResponse.redirect(redirect);
+  }
   if (user && request.nextUrl.pathname === "/login") { const redirect = request.nextUrl.clone(); redirect.pathname = "/"; redirect.search = ""; return NextResponse.redirect(redirect); }
   return response;
+}
+
+function unauthorizedApi() {
+  return NextResponse.json({ error: "Authentication required" }, { status: 401, headers: { "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" } });
 }
