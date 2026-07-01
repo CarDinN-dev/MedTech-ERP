@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { accessProvisioningSchema, employeeImportSchema, employeeOnboardingSchema, money, quotationSchema, userAccessSchema } from "@/lib/validation";
+import { accessProvisioningSchema, employeeImportSchema, employeeOnboardingSchema, escapeSpreadsheetFormula, money, safeFileName, validateCostCenterPercentages, validateDateRange, validateStructuredRecord, quotationSchema, userAccessSchema } from "@/lib/validation";
 
 describe("ERP validation schemas", () => {
   it("accepts valid money and rejects negative or over-precision values", () => {
@@ -36,5 +36,25 @@ describe("ERP validation schemas", () => {
     expect(quotationSchema.safeParse(base).success).toBe(true);
     expect(quotationSchema.safeParse({ ...base, items: [{ ...base.items[0], quantity: 0 }] }).success).toBe(false);
     expect(quotationSchema.safeParse({ ...base, items: [{ ...base.items[0], discount_percent: 101 }] }).success).toBe(false);
+  });
+
+  it("validates structured allowlists, formats, and semantic rules", () => {
+    expect(validateStructuredRecord({ Status: "Approved", Email: "qa@medtech.qa", Quantity: "2", "Discount %": "15" })).toBe("");
+    expect(validateStructuredRecord({ Status: "Root" })).toContain("Status must be one of");
+    expect(validateStructuredRecord({ Email: "bad" })).toContain("valid email");
+    expect(validateStructuredRecord({ "Email Required": "Yes" }, { "Email Required": ["Yes", "No"] }, {}, false)).toBe("");
+    expect(validateStructuredRecord({ Email: "Assigned" }, { Email: ["Assigned", "Not Assigned"] }, {}, false)).toBe("");
+    expect(validateStructuredRecord({ Quantity: "0" })).toContain("greater than 0");
+    expect(validateStructuredRecord({ "Discount %": "101" })).toContain("between 0 and 100");
+    expect(validateDateRange("2026-01-01", "2026-01-31")).toBe(true);
+    expect(validateDateRange("2026-02-01", "2026-01-31")).toBe(false);
+    expect(validateCostCenterPercentages([50, 25, 25])).toBe(true);
+    expect(validateCostCenterPercentages([50, 40])).toBe(false);
+  });
+
+  it("sanitizes filenames and spreadsheet formulas", () => {
+    expect(safeFileName("../QTN<script>.pdf")).toBe("QTN");
+    expect(escapeSpreadsheetFormula("=cmd|calc")).toBe("'=cmd|calc");
+    expect(escapeSpreadsheetFormula("normal")).toBe("normal");
   });
 });
