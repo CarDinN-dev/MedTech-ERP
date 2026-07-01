@@ -53,7 +53,8 @@ function DataImportWorkspace() {
 
   const upload = async (file?: File) => {
     if (!file) return;
-    const parsed = await parseExcelRows(file);
+    let parsed: Awaited<ReturnType<typeof parseExcelRows>>;
+    try { parsed = await parseExcelRows(file); } catch (error) { showMessage(error instanceof Error ? error.message : "Import failed"); return; }
     if (!parsed.hasWorksheet) { showMessage("Workbook has no worksheet"); return; }
     const target = currentTarget ?? inferImportTarget(parsed.headers, parsed.sheetName, file.name);
     const stored = readLocal<Record<string, string>[]>(importStorageKey(target.key), []);
@@ -87,7 +88,7 @@ function DataImportWorkspace() {
   };
 
   return <ReadinessShell title="Data Import Center" subtitle="Local Excel upload, validation, error export, import history and audit logging.">
-    <input ref={fileRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={event => upload(event.target.files?.[0])} />
+    <input ref={fileRef} type="file" accept=".xlsx,.xlsm" className="hidden" onChange={event => upload(event.target.files?.[0])} />
     <div className="flex flex-wrap items-center gap-2 border-b px-5 py-3.5">
       <select value={targetKey} onChange={event => setTargetKey(event.target.value as ImportTargetKey | "auto")} className="h-9 min-w-[260px] rounded-lg border bg-[var(--panel)] px-3 text-sm outline-none">
         <option value="auto">Auto detect target</option>

@@ -20,7 +20,8 @@ export function MyWorkWorkspace() {
     refresh();
     window.addEventListener("storage", refresh);
     window.addEventListener("medtech:approvals", refresh);
-    return () => { window.removeEventListener("storage", refresh); window.removeEventListener("medtech:approvals", refresh); };
+    window.addEventListener("medtech:alerts", refresh);
+    return () => { window.removeEventListener("storage", refresh); window.removeEventListener("medtech:approvals", refresh); window.removeEventListener("medtech:alerts", refresh); };
   }, []);
 
   const tasks = useMemo(() => buildMyWorkQueue(session), [session]);

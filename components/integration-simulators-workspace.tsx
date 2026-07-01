@@ -79,7 +79,7 @@ export function IntegrationSimulatorsWorkspace() {
             <p className="mt-1 text-xs text-[var(--muted)]">{config.production}</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <input ref={importRef} type="file" accept=".csv,.txt,.xlsx,.xls" className="hidden" onChange={event => loadFile(event.target.files?.[0])} />
+            <input ref={importRef} type="file" accept=".csv,.txt,.xlsx,.xlsm" className="hidden" onChange={event => loadFile(event.target.files?.[0])} />
             <Button variant="secondary" onClick={() => importRef.current?.click()}><Upload className="h-4 w-4" /> File import</Button>
             <Button variant="secondary" onClick={() => setInput(config.sample)}><FileSpreadsheet className="h-4 w-4" /> Sample</Button>
             <Button onClick={run}><Play className="h-4 w-4" /> Run local simulation</Button>

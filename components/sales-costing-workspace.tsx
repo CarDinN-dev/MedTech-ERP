@@ -119,7 +119,8 @@ export function SalesCostingWorkspace() {
   };
   const importExcel = async (file?: File) => {
     if (!file) return;
-    const parsed = await parseExcelRows(file);
+    let parsed: Awaited<ReturnType<typeof parseExcelRows>>;
+    try { parsed = await parseExcelRows(file); } catch (error) { notify(error instanceof Error ? error.message : "Import failed"); return; }
     if (!parsed.hasWorksheet) return notify("Workbook has no worksheet");
     const result = importCostingRows(parsed.rows);
     setErrors(result.errors);
@@ -158,7 +159,7 @@ export function SalesCostingWorkspace() {
   };
 
   return <div className="overflow-hidden bg-[var(--panel)]">
-    <input ref={fileRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={event => importExcel(event.target.files?.[0])} />
+    <input ref={fileRef} type="file" accept=".xlsx,.xlsm" className="hidden" onChange={event => importExcel(event.target.files?.[0])} />
     <div className="flex flex-wrap items-center gap-2 border-b px-5 py-3.5">
       <div className="relative min-w-[220px] flex-1 md:max-w-sm"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input value={filters.q} onChange={event => setFilters({ ...filters, q: event.target.value })} placeholder="Search costing sheets..." className="h-9 w-full rounded-lg border bg-[var(--panel)] pl-9 pr-3 text-sm outline-none focus:border-teal-500" /></div>
       <Select value={filters.customer} options={options.customer} placeholder="Customer" onChange={value => setFilters({ ...filters, customer: value })} />

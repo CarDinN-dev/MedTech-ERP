@@ -1,12 +1,11 @@
 ﻿"use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowDown, ArrowUp, ArrowUpDown, Banknote, BriefcaseBusiness, CalendarDays, Check, CheckCircle2,
   ChevronDown, ChevronRight, CircleDollarSign, Download, Ellipsis, FileDown, FileText, FolderLock,
   Landmark, Search, ShieldCheck, Upload, UserPlus, UsersRound, X
 } from "lucide-react";
-import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Button, EmptyState, StatusBadge } from "@/components/ui";
 import { AttendanceWorkspace, LeaveWorkspace, PayrollWorkspace, RecruitmentWorkspace } from "@/components/hr/operations-workspaces";
 import { RecordModal, type RecordFieldSuggestion, type RecordFieldType } from "@/components/record-modal";
@@ -31,6 +30,7 @@ const kpis = [
 ];
 const toneClasses: Record<string, string> = { teal: "bg-teal-50 text-teal-700 dark:bg-teal-950/50", blue: "bg-blue-50 text-blue-700 dark:bg-blue-950/50", amber: "bg-amber-50 text-amber-700 dark:bg-amber-950/50", violet: "bg-violet-50 text-violet-700 dark:bg-violet-950/50", rose: "bg-rose-50 text-rose-700 dark:bg-rose-950/50" };
 const employeeLinkedTabs = new Set<HrTab>(["Contracts", "Probation Reviews", "Access Provisioning", "Attendance Exceptions", "Business Trips", "Employee Expenses", "Performance/Appraisals", "eLearning", "EOS / Gratuity / Final Settlement", "Payroll Accounting Draft Journal"]);
+const PAGE_SIZE = 50;
 
 export function HRWorkspace() {
   const [activeTab, setActiveTab] = useState<HrTab>("Dashboard");
@@ -40,6 +40,7 @@ export function HRWorkspace() {
   const [category, setCategory] = useState("All");
   const [sortColumn, setSortColumn] = useState("");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [page, setPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [selectedRecord, setSelectedRecord] = useState<DemoRecord | null>(null);
   const [recordModalOpen, setRecordModalOpen] = useState(false);
@@ -57,11 +58,12 @@ export function HRWorkspace() {
   const categories = useMemo(() => Array.from(new Set(records.map(record => record.Category).filter(Boolean))).sort(), [records]);
   const modalFieldTypes = useMemo(() => hrFieldTypesFor(activeTab), [activeTab]);
   const modalSuggestions = useMemo(() => hrSuggestionsFor(activeTab), [activeTab]);
+  const deferredQuery = useDeferredValue(query);
   const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
   const recordById = useMemo(() => new Map(records.map(record => [record.__id, record])), [records]);
   const searchableRecords = useMemo(() => records.map(record => ({ record, searchText: Object.values(record).join("\n").toLowerCase() })), [records]);
   const filtered = useMemo(() => {
-    const search = query.toLowerCase();
+    const search = deferredQuery.trim().toLowerCase();
     return searchableRecords.filter(({ record, searchText }) => {
     const searchMatch = !search || searchText.includes(search);
     const statusMatch = status === "All" || record.Status === status;
@@ -73,16 +75,20 @@ export function HRWorkspace() {
     const comparison = (a[sortColumn] ?? "").localeCompare(b[sortColumn] ?? "", undefined, { numeric: true, sensitivity: "base" });
     return sortDirection === "asc" ? comparison : -comparison;
   });
-  }, [searchableRecords, query, status, department, category, sortColumn, sortDirection]);
+  }, [searchableRecords, deferredQuery, status, department, category, sortColumn, sortDirection]);
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const visibleRecords = useMemo(() => filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE), [filtered, currentPage]);
   const selectedRecords = useMemo(() => selectedIds.map(id => recordById.get(id)).filter((record): record is DemoRecord => Boolean(record)), [recordById, selectedIds]);
 
-  useEffect(() => { setQuery(""); setStatus("All"); setDepartment("All"); setCategory("All"); setSortColumn(""); setSelectedIds([]); setSelectedRecord(null); setRecordModalOpen(false); }, [activeTab]);
+  useEffect(() => { setQuery(""); setStatus("All"); setDepartment("All"); setCategory("All"); setSortColumn(""); setSelectedIds([]); setSelectedRecord(null); setRecordModalOpen(false); setPage(1); }, [activeTab]);
+  useEffect(() => { setPage(1); }, [deferredQuery, status, department, category, sortColumn, sortDirection]);
   const notify = (message: string) => { setToast(message); window.setTimeout(() => setToast(""), 2800); };
   const primaryName = view.columns[0];
   const recordName = (record?: DemoRecord | Record<string, string> | null) => record?.[primaryName] || "HR record";
   const toggleSort = (column: string) => { if (sortColumn === column) setSortDirection(value => value === "asc" ? "desc" : "asc"); else { setSortColumn(column); setSortDirection("asc"); } };
   const toggleSelection = (id: string) => setSelectedIds(current => current.includes(id) ? current.filter(value => value !== id) : [...current, id]);
-  const toggleAll = () => { const ids = filtered.map(record => record.__id); const idSet = new Set(ids); const all = ids.length > 0 && ids.every(id => selectedIdSet.has(id)); setSelectedIds(current => all ? current.filter(id => !idSet.has(id)) : Array.from(new Set([...current, ...ids]))); };
+  const toggleAll = () => { const ids = visibleRecords.map(record => record.__id); const idSet = new Set(ids); const all = ids.length > 0 && ids.every(id => selectedIdSet.has(id)); setSelectedIds(current => all ? current.filter(id => !idSet.has(id)) : Array.from(new Set([...current, ...ids]))); };
   const openCreate = () => { if (activeTab === "Employees") { setOnboardingRecord(null); setOnboardingOpen(true); } else { setSelectedRecord(null); setRecordModalOpen(true); } };
   const openRecord = (record: DemoRecord) => { setSelectedRecord(record); if (activeTab !== "Employees") setRecordModalOpen(true); };
   const saveRecord = (input: Record<string, string>) => {
@@ -114,7 +120,7 @@ export function HRWorkspace() {
   };
 
   return <div className="mx-auto max-w-[1680px] p-4 md:p-7">
-    <input ref={importRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={event => importEmployees(event.target.files?.[0])} />
+    <input ref={importRef} type="file" accept=".xlsx,.xlsm" className="hidden" onChange={event => importEmployees(event.target.files?.[0])} />
     <div className="mb-5 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
       <div className="flex items-center gap-3.5"><div className="grid h-12 w-12 place-items-center rounded-2xl bg-violet-50 text-violet-600 dark:bg-violet-950/50"><UsersRound className="h-6 w-6" /></div><div><h1 className="text-2xl font-bold tracking-tight">People & HR</h1><p className="mt-1 text-xs text-[var(--muted)]">Workforce command center - employee lifecycle, compliance and payroll</p></div></div>
       <div className="flex flex-wrap gap-2">{activeTab === "Employees" && <><Button variant="secondary" onClick={downloadTemplate}><FileDown className="h-4 w-4" /> Download template</Button><Button variant="secondary" onClick={() => importRef.current?.click()}><Upload className="h-4 w-4" /> Import Excel</Button></>}{activeTab !== "Dashboard" && !hasDedicatedWorkspace && <Button onClick={openCreate}><UserPlus className="h-4 w-4" /> {view.primaryAction}</Button>}</div>
@@ -123,8 +129,8 @@ export function HRWorkspace() {
     {activeTab === "Dashboard" ? <HRDashboard onNavigate={setActiveTab} /> : activeTab === "Recruitment" ? <RecruitmentWorkspace /> : activeTab === "Attendance" ? <AttendanceWorkspace /> : activeTab === "Leave" ? <LeaveWorkspace /> : activeTab === "Payroll" ? <PayrollWorkspace /> : <>
       <section className="overflow-hidden rounded-2xl border bg-[var(--panel)] shadow-soft">
         <div className="flex flex-wrap items-center gap-2 border-b px-4 py-3"><div className="relative min-w-[220px] flex-1 md:max-w-sm"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input value={query} onChange={event => setQuery(event.target.value)} placeholder={`Search ${activeTab.toLowerCase()}...`} className="h-9 w-full rounded-lg border bg-[var(--panel)] pl-9 pr-3 text-sm outline-none focus:border-teal-500" /></div>{statusColumn && <select aria-label="Filter by status" value={status} onChange={event => setStatus(event.target.value)} className="h-9 rounded-lg border bg-[var(--panel)] px-3 text-xs"><option value="All">All statuses</option>{statuses.map(value => <option key={value}>{value}</option>)}</select>}{categories.length > 0 && ["Self service", "Settings", "Reports", "Documents"].includes(activeTab) && <select aria-label="Filter by category" value={category} onChange={event => setCategory(event.target.value)} className="h-9 rounded-lg border bg-[var(--panel)] px-3 text-xs"><option value="All">All categories</option>{categories.map(value => <option key={value}>{value}</option>)}</select>}{activeTab === "Employees" && departments.length > 0 && <select aria-label="Filter by department" value={department} onChange={event => setDepartment(event.target.value)} className="h-9 rounded-lg border bg-[var(--panel)] px-3 text-xs"><option value="All">All departments</option>{departments.map(value => <option key={value}>{value}</option>)}</select>}<div className="ml-auto flex flex-wrap gap-2">{activeTab === "Approvals" && selectedRecords.length > 0 && <Button onClick={approveSelected}><Check className="h-4 w-4" /> Approve selected</Button>}{selectedRecords.length > 0 && <Button variant="secondary" onClick={downloadPdf}><FileText className="h-4 w-4" /> PDF ({selectedRecords.length})</Button>}<Button variant="secondary" onClick={exportCurrent}><Download className="h-4 w-4" /> Excel</Button></div></div>
-        {filtered.length ? <div className="overflow-x-auto"><table className="w-full min-w-[980px] text-left"><thead><tr className="border-b bg-slate-50/80 dark:bg-slate-900/40"><th className="w-12 px-4 py-3"><input aria-label="Select all HR records" type="checkbox" checked={filtered.length > 0 && filtered.every(record => selectedIdSet.has(record.__id))} onChange={toggleAll} className="h-4 w-4 accent-teal-600" /></th>{view.columns.map(column => <th key={column} className="px-4 py-3"><button aria-label={`Sort by ${column}`} onClick={() => toggleSort(column)} className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">{column}{sortColumn === column ? sortDirection === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" /> : <ArrowUpDown className="h-3 w-3 opacity-40" />}</button></th>)}<th className="w-14" /></tr></thead><tbody className="divide-y">{filtered.map(record => <tr key={record.__id} className={cn("transition hover:bg-slate-50 dark:hover:bg-slate-800/30", selectedIdSet.has(record.__id) && "bg-teal-50/60 dark:bg-teal-950/20")}><td className="px-4 py-3"><input aria-label={`Select ${recordName(record)}`} type="checkbox" checked={selectedIdSet.has(record.__id)} onChange={() => toggleSelection(record.__id)} className="h-4 w-4 accent-teal-600" /></td>{view.columns.map((column, index) => <td key={column} className={cn("px-4 py-3 text-xs", index === 0 ? "font-semibold" : "text-[var(--muted)]")}>{column === "Status" ? <StatusBadge>{record[column]}</StatusBadge> : column === "Full Name" && activeTab === "Employees" ? <button onClick={() => openRecord(record)} className="text-left font-semibold text-[var(--text)] hover:text-teal-600"><span className="block">{record["Full Name"]}</span><span className="text-[10px] font-normal text-slate-400">{record["Email Address"]}</span></button> : record[column]}</td>)}<td className="px-3"><button aria-label={`Open ${recordName(record)}`} onClick={() => openRecord(record)} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-teal-600"><Ellipsis className="h-4 w-4" /></button></td></tr>)}</tbody></table></div> : <EmptyState title={`No ${activeTab.toLowerCase()} found`} description="Adjust the search or filters, or create a new record." />}
-        <div className="flex items-center justify-between border-t px-4 py-3 text-[11px] text-slate-400"><span>{selectedRecords.length ? `${selectedRecords.length} selected - ` : ""}Showing {filtered.length} of {records.length}</span><span>Changes save locally and write to the audit trail</span></div>
+        {filtered.length ? <div className="overflow-x-auto"><table className="w-full min-w-[980px] text-left"><thead><tr className="border-b bg-slate-50/80 dark:bg-slate-900/40"><th className="w-12 px-4 py-3"><input aria-label="Select all visible HR records" type="checkbox" checked={visibleRecords.length > 0 && visibleRecords.every(record => selectedIdSet.has(record.__id))} onChange={toggleAll} className="h-4 w-4 accent-teal-600" /></th>{view.columns.map(column => <th key={column} className="px-4 py-3"><button aria-label={`Sort by ${column}`} onClick={() => toggleSort(column)} className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">{column}{sortColumn === column ? sortDirection === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" /> : <ArrowUpDown className="h-3 w-3 opacity-40" />}</button></th>)}<th className="w-14" /></tr></thead><tbody className="divide-y">{visibleRecords.map(record => <tr key={record.__id} className={cn("transition hover:bg-slate-50 dark:hover:bg-slate-800/30", selectedIdSet.has(record.__id) && "bg-teal-50/60 dark:bg-teal-950/20")}><td className="px-4 py-3"><input aria-label={`Select ${recordName(record)}`} type="checkbox" checked={selectedIdSet.has(record.__id)} onChange={() => toggleSelection(record.__id)} className="h-4 w-4 accent-teal-600" /></td>{view.columns.map((column, index) => <td key={column} className={cn("px-4 py-3 text-xs", index === 0 ? "font-semibold" : "text-[var(--muted)]")}>{column === "Status" ? <StatusBadge>{record[column]}</StatusBadge> : column === "Full Name" && activeTab === "Employees" ? <button onClick={() => openRecord(record)} className="text-left font-semibold text-[var(--text)] hover:text-teal-600"><span className="block">{record["Full Name"]}</span><span className="text-[10px] font-normal text-slate-400">{record["Email Address"]}</span></button> : record[column]}</td>)}<td className="px-3"><button aria-label={`Open ${recordName(record)}`} onClick={() => openRecord(record)} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-teal-600"><Ellipsis className="h-4 w-4" /></button></td></tr>)}</tbody></table></div> : <EmptyState title={`No ${activeTab.toLowerCase()} found`} description="Adjust the search or filters, or create a new record." />}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t px-4 py-3 text-[11px] text-slate-400"><span>{selectedRecords.length ? `${selectedRecords.length} selected - ` : ""}Showing {filtered.length ? (currentPage - 1) * PAGE_SIZE + 1 : 0}-{Math.min(currentPage * PAGE_SIZE, filtered.length)} of {filtered.length} filtered / {records.length}</span><div className="flex items-center gap-2">{pageCount > 1 && <><Button variant="ghost" className="h-7 px-2 text-[11px]" disabled={currentPage === 1} onClick={() => setPage(value => Math.max(1, value - 1))}>Previous</Button><span>Page {currentPage} of {pageCount}</span><Button variant="ghost" className="h-7 px-2 text-[11px]" disabled={currentPage === pageCount} onClick={() => setPage(value => Math.min(pageCount, value + 1))}>Next</Button></>}<span>Changes save locally and write to the audit trail</span></div></div>
       </section>
     </>}
     {selectedRecord && activeTab === "Employees" && <EmployeeDrawer employee={selectedRecord} onClose={() => setSelectedRecord(null)} onEdit={() => { setOnboardingRecord(selectedRecord); setSelectedRecord(null); setOnboardingOpen(true); }} />}
@@ -313,14 +319,12 @@ function todayHrIso() {
 }
 
 function HRDashboard({ onNavigate }: { onNavigate: (tab: HrTab) => void }) {
-  const attendance = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"].map((month, index) => ({ month, value: hrAttendanceTrend[index] }));
-  const payroll = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"].map((month, index) => ({ month, value: hrPayrollTrend[index] }));
   return <div className="space-y-4">
     <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">{kpis.map(item => { const Icon = item.icon; return <button key={item.label} onClick={() => onNavigate(item.label.includes("payroll") ? "Payroll" : item.label.includes("leave") ? "Leave" : item.label.includes("approval") ? "Approvals" : item.label.includes("document") ? "Documents" : "Employees")} className="rounded-2xl border bg-[var(--panel)] p-4 text-left shadow-soft transition hover:-translate-y-0.5 hover:border-teal-200"><div className="flex items-start justify-between"><span className={cn("rounded-xl p-2.5", toneClasses[item.tone])}><Icon className="h-5 w-5" /></span><ChevronRight className="h-4 w-4 text-slate-300" /></div><div className="mt-4 text-[11px] font-medium text-[var(--muted)]">{item.label}</div><div className="mt-1 text-xl font-bold tabular">{item.value}</div><div className="mt-2 text-[10px] text-slate-400">{item.note}</div></button>; })}</section>
     <section className="grid gap-4 xl:grid-cols-[1.15fr_1fr_1fr]">
       <Panel title="Headcount by department" action="Employees" onAction={() => onNavigate("Employees")}><div className="space-y-3 pt-2">{hrDepartmentHeadcount.map(([name, value]) => <div key={name} className="grid grid-cols-[90px_1fr_24px] items-center gap-2 text-[11px]"><span className="truncate text-[var(--muted)]">{name}</span><div className="h-2 rounded-full bg-slate-100 dark:bg-slate-800"><div className="h-full rounded-full bg-teal-600" style={{ width: `${(value / 28) * 100}%` }} /></div><b>{value}</b></div>)}</div></Panel>
-      <Panel title="Attendance trend" subtitle="Monthly attendance percentage"><div className="h-52"><ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 320, height: 208 }}><AreaChart data={attendance} margin={{ top: 20, right: 18, left: -18, bottom: 0 }}><CartesianGrid vertical={false} stroke="var(--line)" /><XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: "#94a3b8" }} /><YAxis domain={[88, 100]} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: "#94a3b8" }} tickFormatter={value => `${value}%`} /><Tooltip /><Area type="monotone" dataKey="value" stroke="#0f766e" strokeWidth={2.5} fill="#ccfbf1" label={{ position: "top", fontSize: 9, fill: "#0f766e", formatter: (value: unknown) => `${value}%` }} /></AreaChart></ResponsiveContainer></div></Panel>
-      <Panel title="Payroll cost trend" subtitle="Gross monthly payroll - QAR"><div className="h-52"><ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 320, height: 208 }}><AreaChart data={payroll} margin={{ top: 20, right: 18, left: -18, bottom: 0 }}><CartesianGrid vertical={false} stroke="var(--line)" /><XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: "#94a3b8" }} /><YAxis domain={[1, 1.3]} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: "#94a3b8" }} tickFormatter={value => `${value}M`} /><Tooltip /><Area type="monotone" dataKey="value" stroke="#7c3aed" strokeWidth={2.5} fill="#ede9fe" label={{ position: "top", fontSize: 9, fill: "#7c3aed", formatter: (value: unknown) => `${value}M` }} /></AreaChart></ResponsiveContainer></div></Panel>
+      <Panel title="Attendance trend" subtitle="Monthly attendance percentage"><TrendBars values={hrAttendanceTrend} min={88} suffix="%" tone="bg-teal-500" /></Panel>
+      <Panel title="Payroll cost trend" subtitle="Gross monthly payroll - QAR"><TrendBars values={hrPayrollTrend} min={1} suffix="M" tone="bg-violet-500" /></Panel>
     </section>
     <section className="grid gap-4 xl:grid-cols-[1fr_1.15fr_1.15fr]">
       <Panel title="Recruitment funnel" action="Recruitment" onAction={() => onNavigate("Recruitment")}><div className="space-y-2 pt-2">{[["Applications",84,"100%"],["Screening",38,"74%"],["Interview",16,"52%"],["Offer",6,"31%"],["Hired",4,"22%"]].map(([stage,count,width]) => <div key={String(stage)}><div className="mb-1 flex text-[11px]"><span>{stage}</span><b className="ml-auto">{count}</b></div><div className="h-2 rounded-full bg-slate-100 dark:bg-slate-800"><div className="h-full rounded-full bg-teal-500" style={{ width: String(width) }} /></div></div>)}</div></Panel>
@@ -332,6 +336,12 @@ function HRDashboard({ onNavigate }: { onNavigate: (tab: HrTab) => void }) {
 }
 
 function Panel({ title, subtitle, action, onAction, children }: { title: string; subtitle?: string; action?: string; onAction?: () => void; children: React.ReactNode }) { return <div className="rounded-2xl border bg-[var(--panel)] p-5 shadow-soft"><div className="mb-3 flex items-start"><div><h2 className="text-sm font-bold">{title}</h2>{subtitle && <p className="mt-1 text-[10px] text-slate-400">{subtitle}</p>}</div>{action && <button onClick={onAction} className="ml-auto flex items-center gap-1 text-[10px] font-semibold text-teal-600">{action}<ChevronRight className="h-3 w-3" /></button>}</div>{children}</div>; }
+
+function TrendBars({ values, min, suffix, tone }: { values: number[]; min: number; suffix: string; tone: string }) {
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
+  const max = Math.max(...values);
+  return <div className="flex h-52 items-end gap-2 pt-4">{values.map((value, index) => <div key={months[index]} className="flex flex-1 flex-col items-center gap-2"><span className="text-[10px] font-semibold text-[var(--muted)]">{value}{suffix}</span><div className="flex h-32 w-full items-end rounded-lg bg-slate-100 dark:bg-slate-800"><div className={cn("w-full rounded-lg", tone)} style={{ height: `${Math.max(12, ((value - min) / Math.max(0.01, max - min)) * 100)}%` }} /></div><span className="text-[10px] text-slate-400">{months[index]}</span></div>)}</div>;
+}
 
 function EmployeeDrawer({ employee, onClose, onEdit }: { employee: DemoRecord; onClose: () => void; onEdit: () => void }) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({ "Core Employment Details": true });

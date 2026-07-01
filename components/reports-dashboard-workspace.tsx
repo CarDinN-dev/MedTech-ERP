@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer as RechartsResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Download, FileDown, Filter, FileText, PlugZap, Search, SlidersHorizontal } from "lucide-react";
 import { Button, StatusBadge } from "@/components/ui";
 import { IntegrationSimulatorsWorkspace } from "@/components/integration-simulators-workspace";
@@ -151,18 +150,10 @@ export function ReportsDashboardWorkspace() {
 }
 
 function ReportChart({ dashboard }: { dashboard: ReportDashboard }) {
-  const data = dashboard.chartData.length ? dashboard.chartData : [{ name: "No rows", value: 0 }];
-  if (dashboard.chart === "pie") return <ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={data} dataKey="value" nameKey="name" innerRadius={72} outerRadius={118} paddingAngle={2}>{data.map((_, index) => <Cell key={index} fill={chartColors[index % chartColors.length]} />)}</Pie><Tooltip content={<ChartTooltip />} /></PieChart></ResponsiveContainer>;
-  if (dashboard.chart === "area") return <ResponsiveContainer width="100%" height="100%"><AreaChart data={data} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--line)" /><XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: "#94a3b8" }} /><YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: "#94a3b8" }} tickFormatter={compact} width={46} /><Tooltip content={<ChartTooltip />} /><Area type="monotone" dataKey="value" stroke="#0d9488" strokeWidth={2.5} fill="#ccfbf1" /></AreaChart></ResponsiveContainer>;
-  if (dashboard.chart === "line") return <ResponsiveContainer width="100%" height="100%"><AreaChart data={data} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--line)" /><XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: "#94a3b8" }} /><YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: "#94a3b8" }} width={38} /><Tooltip content={<ChartTooltip />} /><Area type="monotone" dataKey="value" stroke="#2563eb" strokeWidth={2.5} fill="#dbeafe" /></AreaChart></ResponsiveContainer>;
-  return <ResponsiveContainer width="100%" height="100%"><BarChart data={data} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--line)" /><XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: "#94a3b8" }} interval={0} angle={-12} textAnchor="end" height={56} /><YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: "#94a3b8" }} tickFormatter={compact} width={46} /><Tooltip content={<ChartTooltip />} /><Bar dataKey="value" radius={[7, 7, 0, 0]}>{data.map((_, index) => <Cell key={index} fill={chartColors[index % chartColors.length]} />)}</Bar></BarChart></ResponsiveContainer>;
-}
-
-function ResponsiveContainer(props: React.ComponentProps<typeof RechartsResponsiveContainer>) {
-  const [ready, setReady] = useState(false);
-  useEffect(() => setReady(true), []);
-  if (!ready) return <div className="h-full w-full animate-pulse rounded-xl bg-slate-50 dark:bg-slate-900/40" />;
-  return <RechartsResponsiveContainer minWidth={0} initialDimension={{ width: 1, height: 1 }} {...props} />;
+  const data = (dashboard.chartData.length ? dashboard.chartData : [{ name: "No rows", value: 0 }]).map(row => ({ name: String(row.name), value: Number(row.value) || 0 }));
+  if (dashboard.chart === "pie") return <NativePieChart data={data} />;
+  if (dashboard.chart === "area" || dashboard.chart === "line") return <NativeLineChart data={data} filled={dashboard.chart === "area"} />;
+  return <NativeBarChart data={data} />;
 }
 
 function Panel({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
@@ -175,11 +166,6 @@ function Select({ label, value, options, onChange }: { label: string; value: str
 
 function DateInput({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
   return <label><span className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-slate-400">{label}</span><input type="date" value={value} onChange={event => onChange(event.target.value)} className="h-9 w-full rounded-lg border bg-[var(--panel)] px-3 text-xs outline-none" /></label>;
-}
-
-function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number }>; label?: string }) {
-  if (!active || !payload?.length) return null;
-  return <div className="rounded-xl border bg-[var(--panel)] p-3 text-xs shadow-panel"><div className="font-semibold">{label}</div><div className="mt-1 text-[var(--muted)]">{formatCell(payload[0].value)}</div></div>;
 }
 
 function readSalesWorkflows() {
@@ -215,4 +201,54 @@ function compact(value: unknown) {
   if (Math.abs(number) >= 1_000_000) return `${Math.round(number / 100_000) / 10}M`;
   if (Math.abs(number) >= 1_000) return `${Math.round(number / 100) / 10}K`;
   return String(Math.round(number));
+}
+
+function NativeBarChart({ data }: { data: Array<{ name: string; value: number }> }) {
+  const max = Math.max(1, ...data.map(row => Math.abs(row.value)));
+  return <div className="flex h-full items-end gap-2 px-2 pt-8">{data.slice(0, 12).map((row, index) => <div key={`${row.name}-${index}`} className="flex min-w-0 flex-1 flex-col items-center gap-2"><span className="text-[10px] font-semibold text-[var(--muted)]">{compact(row.value)}</span><div className="flex h-48 w-full items-end rounded-lg bg-slate-100 dark:bg-slate-800"><div className="w-full rounded-lg" style={{ height: `${Math.max(5, Math.abs(row.value) / max * 100)}%`, backgroundColor: chartColors[index % chartColors.length] }} /></div><span className="max-w-full truncate text-[10px] text-slate-400">{row.name}</span></div>)}</div>;
+}
+
+function NativeLineChart({ data, filled }: { data: Array<{ name: string; value: number }>; filled: boolean }) {
+  const width = 720;
+  const height = 260;
+  const pad = 28;
+  const values = data.map(row => row.value);
+  const min = Math.min(0, ...values);
+  const max = Math.max(1, ...values);
+  const range = Math.max(1, max - min);
+  const point = (value: number, index: number) => {
+    const x = pad + (index / Math.max(1, data.length - 1)) * (width - pad * 2);
+    const y = height - pad - ((value - min) / range) * (height - pad * 2);
+    return { x, y };
+  };
+  const path = data.map((row, index) => {
+    const { x, y } = point(row.value, index);
+    return `${index ? "L" : "M"}${x},${y}`;
+  }).join(" ");
+  const area = `${path} L${width - pad},${height - pad} L${pad},${height - pad} Z`;
+
+  return <svg viewBox={`0 0 ${width} ${height}`} className="h-full w-full overflow-visible" role="img" aria-label="Report chart">
+    <defs><linearGradient id="reportChartFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#0d9488" stopOpacity="0.22" /><stop offset="100%" stopColor="#0d9488" stopOpacity="0" /></linearGradient></defs>
+    {[0, 1, 2, 3, 4].map(index => <line key={index} x1={pad} x2={width - pad} y1={pad + index * 42} y2={pad + index * 42} stroke="var(--line)" strokeDasharray="3 3" />)}
+    {filled && <path d={area} fill="url(#reportChartFill)" />}
+    <path d={path} fill="none" stroke={filled ? "#0d9488" : "#2563eb"} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+    {data.map((row, index) => {
+      const { x, y } = point(row.value, index);
+      return <g key={`${row.name}-${index}`}><circle cx={x} cy={y} r="3.5" fill={filled ? "#0d9488" : "#2563eb"} /><text x={x} y={height - 5} textAnchor="middle" fontSize="10" fill="#94a3b8">{row.name.slice(0, 9)}</text></g>;
+    })}
+  </svg>;
+}
+
+function NativePieChart({ data }: { data: Array<{ name: string; value: number }> }) {
+  const values = data.map(row => Math.max(0, Math.abs(row.value)));
+  const total = values.reduce((sum, value) => sum + value, 0) || 1;
+  let cursor = 0;
+  const gradient = values.map((value, index) => {
+    const start = cursor;
+    const end = cursor + value / total * 100;
+    cursor = end;
+    return `${chartColors[index % chartColors.length]} ${start}% ${end}%`;
+  }).join(", ");
+
+  return <div className="flex h-full items-center justify-center gap-8"><div className="grid h-56 w-56 shrink-0 place-items-center rounded-full" style={{ background: `conic-gradient(${gradient})` }}><div className="grid h-32 w-32 place-items-center rounded-full bg-[var(--panel)] text-center"><b className="text-lg">{compact(total)}</b><span className="-mt-2 text-[10px] text-slate-400">total</span></div></div><div className="grid max-w-xs gap-2 text-xs">{data.slice(0, 8).map((row, index) => <div key={`${row.name}-${index}`} className="flex items-center gap-2"><i className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: chartColors[index % chartColors.length] }} /><span className="truncate text-[var(--muted)]">{row.name}</span><b className="ml-auto">{compact(row.value)}</b></div>)}</div></div>;
 }

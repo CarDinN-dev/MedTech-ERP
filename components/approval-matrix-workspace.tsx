@@ -8,6 +8,7 @@ import { exportToExcel } from "@/lib/export/excel";
 import { cn } from "@/lib/utils";
 import { Button, StatusBadge } from "@/components/ui";
 import { permissionError } from "@/lib/erp-security";
+import { appendAuditLog } from "@/lib/audit-store";
 
 const quickSources = [
   { label: "Sales discount", sourceModule: "Sales", sourceRecord: "SFS-2026-0031", requestType: "Quotation discount", requestedBy: "F. Al-Kuwari", amount: 286000, discountPercent: 18, customerTier: "Government", businessUnit: "Diagnostics" },
@@ -50,20 +51,20 @@ export function ApprovalMatrixWorkspace() {
   };
   const submitQuick = () => {
     const error = permissionError(getDemoSession(), "Approvals", "create");
-    if (error) { notify(error); return; }
+    if (error) { denied(error, "Submit approval"); notify(error); return; }
     const result = submitApprovalRequest(quickSources[Number(quick)]);
     refresh();
     notify(result.message);
   };
   const reset = () => {
     const error = permissionError(getDemoSession(), "Approvals", "reset demo data");
-    if (error) { notify(error); return; }
+    if (error) { denied(error, "Approval matrix reset"); notify(error); return; }
     writeApprovalRequests(seedApprovalRequests());
     notify("Approval matrix reset");
   };
   const exportRows = async () => {
     const error = permissionError(getDemoSession(), "Approvals", "export");
-    if (error) { notify(error); return; }
+    if (error) { denied(error, "Approval export"); notify(error); return; }
     await exportToExcel(filtered.map(request => Object.fromEntries(approvalRequestColumns.map(column => [column, request[column as keyof ApprovalRequest] || ""]))), "approval-matrix-requests", "Approvals");
     notify("Approval export generated");
   };
@@ -90,4 +91,8 @@ export function ApprovalMatrixWorkspace() {
     </aside>
     {toast && <div role="status" className="fixed bottom-5 right-5 z-[100] rounded-xl bg-slate-900 px-4 py-3 text-xs font-medium text-white shadow-panel">{toast}</div>}
   </div>;
+}
+
+function denied(details: string, record: string) {
+  appendAuditLog({ action: "PERMISSION DENIED", module: "Approvals", record, details, result: "failure", severity: "high" });
 }

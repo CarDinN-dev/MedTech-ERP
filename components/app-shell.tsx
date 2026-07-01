@@ -1,15 +1,17 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { Bell, ChevronDown, Command, FlaskConical, HelpCircle, LogOut, Menu, Moon, RotateCcw, Search, Sun, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { commandItems, navGroups } from "@/lib/erp-data";
 import { resetAllDemoData } from "@/lib/demo-store";
-import { clearDemoSession, getDemoSession, PRESENTATION_USER_NAME, type DemoSession } from "@/lib/demo-auth";
+import { clearDemoSession, getDemoSession, type DemoSession } from "@/lib/demo-auth";
 import { appendAuditLog } from "@/lib/audit-store";
 import { permissionError } from "@/lib/erp-security";
+import { alertLink, readLocalAlerts, type AlertRecord } from "@/lib/local-alerts";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -23,11 +25,27 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [dark, setDark] = useState(false);
   const [query, setQuery] = useState("");
   const [session, setSession] = useState<DemoSession | null>(null);
+  const [sessionReady, setSessionReady] = useState(false);
+  const [alerts, setAlerts] = useState<AlertRecord[]>([]);
 
   useEffect(() => {
     const saved = localStorage.getItem("medtech-theme") === "dark";
     setDark(saved); document.documentElement.classList.toggle("dark", saved);
-    setSession(getDemoSession());
+    const demoSession = getDemoSession();
+    if (!demoSession) {
+      clearDemoSession();
+      router.replace(`/login?next=${encodeURIComponent(pathname || "/")}`);
+    }
+    setSession(demoSession);
+    setSessionReady(true);
+  }, [pathname, router]);
+  useEffect(() => {
+    const refreshAlerts = () => setAlerts(readLocalAlerts().filter(row => row.Status !== "Resolved"));
+    refreshAlerts();
+    window.addEventListener("storage", refreshAlerts);
+    window.addEventListener("medtech:alerts", refreshAlerts);
+    window.addEventListener("medtech:approvals", refreshAlerts);
+    return () => { window.removeEventListener("storage", refreshAlerts); window.removeEventListener("medtech:alerts", refreshAlerts); window.removeEventListener("medtech:approvals", refreshAlerts); };
   }, []);
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -38,14 +56,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, []);
   const toggleTheme = () => { const next = !dark; setDark(next); document.documentElement.classList.toggle("dark", next); localStorage.setItem("medtech-theme", next ? "dark" : "light"); };
   const notify = (message: string) => { setShellToast(message); window.setTimeout(() => setShellToast(""), 2600); };
-  const currentUser = session ?? { name: PRESENTATION_USER_NAME, email: "admin@medtech.qa", role: "Super Admin", department: "Executive", initials: "K" };
-  const logout = () => { appendAuditLog({ action: "LOGOUT", module: "Authentication", record: currentUser.email, details: "User signed out of the client demo" }); clearDemoSession(); router.replace("/login"); router.refresh(); };
-  const resetDemo = () => { const error = permissionError(currentUser, "Admin", "reset demo data"); if (error) { notify(error); return; } appendAuditLog({ action: "RESET DEMO DATA", module: "Administration", record: "Local demo", details: "All local demo data reset by authorized role" }); resetAllDemoData(); };
+  const currentUser = session;
+  const logout = () => { if (!currentUser) return; appendAuditLog({ action: "LOGOUT", module: "Authentication", record: currentUser.email, details: "User signed out of the client demo" }); clearDemoSession(); router.replace("/login"); router.refresh(); };
+  const resetDemo = () => { if (!currentUser) return; const error = permissionError(currentUser, "Admin", "reset demo data"); if (error) { appendAuditLog({ action: "PERMISSION DENIED", module: "Administration", record: "Local demo reset", details: error, result: "failure", severity: "high" }); notify(error); return; } appendAuditLog({ action: "RESET ALL DEMO DATA", module: "Administration", record: "Local demo", details: "All local demo data reset by authorized role", severity: "critical" }); resetAllDemoData(); };
   const filtered = useMemo(() => commandItems.filter(i => i.label.toLowerCase().includes(query.toLowerCase())), [query]);
+  const alertCount = alerts.length;
+  if (!sessionReady || !currentUser) return <div className="min-h-screen bg-[var(--page)]" />;
 
   const sidebar = <aside className="flex h-full w-[248px] flex-col bg-[#17232e] text-slate-300">
     <div className="flex h-[72px] items-center gap-3 border-b border-white/10 px-5">
-      <div className="grid h-12 w-12 place-items-center overflow-hidden rounded-xl bg-white shadow-lg shadow-teal-950/30"><img src="/brand-mark.svg?v=2" alt="MedTech" className="h-11 w-11 object-contain" /></div>
+      <div className="grid h-12 w-12 place-items-center overflow-hidden rounded-xl bg-white shadow-lg shadow-teal-950/30"><Image src="/brand-mark.svg?v=2" alt="MedTech" width={44} height={44} priority className="h-11 w-11 object-contain" /></div>
       <div><div className="text-[15px] font-bold tracking-tight text-white">MedTech <span className="font-medium text-teal-400">ERP</span></div><div className="text-[10px] tracking-[.16em] text-slate-500">CORPORATION TRADING</div></div>
       <button onClick={() => setMobileOpen(false)} className="ml-auto lg:hidden"><X className="h-5 w-5" /></button>
     </div>
@@ -71,7 +91,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="ml-auto flex items-center gap-1">
           <button title="Help" onClick={() => notify("Use the sidebar or press Ctrl+K to navigate the ERP")} className="rounded-lg p-2.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"><HelpCircle className="h-[18px] w-[18px]" /></button>
           <button title="Toggle theme" onClick={toggleTheme} className="rounded-lg p-2.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800">{dark ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}</button>
-          <div className="relative"><button title="Notifications" onClick={() => setNotificationsOpen(v => !v)} className="relative rounded-lg p-2.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"><Bell className="h-[18px] w-[18px]" />{!notificationsRead && <span className="absolute right-2 top-2 h-2 w-2 rounded-full border-2 border-[var(--panel)] bg-coral" />}</button>{notificationsOpen && <NotificationPanel read={notificationsRead} onMarkAll={() => { setNotificationsRead(true); setNotificationsOpen(false); notify("All notifications marked as read"); }} onOpen={(title) => { setNotificationsOpen(false); notify(`${title} opened`); }} onViewAll={() => { setNotificationsOpen(false); router.push("/approvals"); }} />}</div>
+          <div className="relative"><button title="Notifications" onClick={() => setNotificationsOpen(v => !v)} className="relative rounded-lg p-2.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"><Bell className="h-[18px] w-[18px]" />{alertCount > 0 && <span className="absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-coral px-1 text-[9px] font-bold text-white">{Math.min(alertCount, 99)}</span>}</button>{notificationsOpen && <NotificationPanel alerts={alerts} read={notificationsRead} onMarkAll={() => { setNotificationsRead(true); setNotificationsOpen(false); notify("All notifications marked as read"); }} onOpen={(alert) => { setNotificationsOpen(false); router.push(alertLink(alert)); }} onViewAll={() => { setNotificationsOpen(false); router.push("/alerts"); }} />}</div>
           <div className="mx-2 hidden h-7 w-px bg-[var(--line)] sm:block" />
           <span className="hidden items-center gap-1.5 rounded-full bg-teal-50 px-2.5 py-1 text-[10px] font-bold text-teal-700 dark:bg-teal-950/50 dark:text-teal-300 md:flex"><FlaskConical className="h-3.5 w-3.5" /> CLIENT DEMO</span>
           <div className="relative"><button aria-label="Open user menu" onClick={() => setProfileOpen(value => !value)} className="flex items-center gap-1 sm:gap-2"><div className="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-teal-500 to-blue-600 text-[10px] font-bold text-white">{currentUser.initials}</div><ChevronDown className="hidden h-4 w-4 text-slate-400 sm:block" /></button>{profileOpen && <div className="absolute right-0 top-11 w-64 overflow-hidden rounded-xl border bg-[var(--panel)] shadow-panel animate-in"><div className="border-b p-3"><div className="text-xs font-semibold">{currentUser.name}</div><div className="mt-0.5 truncate text-[10px] text-slate-400">{currentUser.email}</div><div className="mt-1 text-[10px] font-medium text-teal-600">{currentUser.role} · {currentUser.department}</div></div><button onClick={resetDemo} className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-xs hover:bg-slate-50 dark:hover:bg-slate-800"><RotateCcw className="h-4 w-4 text-teal-600" /> Reset all demo data</button><button onClick={logout} className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-xs text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30"><LogOut className="h-4 w-4" /> Sign out</button></div>}</div>
@@ -84,8 +104,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   </div>;
 }
 
-function NotificationPanel({ read, onMarkAll, onOpen, onViewAll }: { read: boolean; onMarkAll: () => void; onOpen: (title: string) => void; onViewAll: () => void }) {
-  return <div className="absolute right-0 top-12 w-[340px] overflow-hidden rounded-2xl border bg-[var(--panel)] shadow-panel animate-in"><div className="flex items-center justify-between border-b px-4 py-3.5"><div><div className="font-semibold">Notifications</div><div className="text-[11px] text-slate-400">{read ? "You are all caught up" : "3 require your attention"}</div></div><button onClick={onMarkAll} disabled={read} className="text-xs font-semibold text-teal-600 disabled:text-slate-400">Mark all read</button></div><div className="divide-y">{[
-    ["Quotation approval required", "QTN-2026-0314 · QAR 286,000", "2m"], ["Stock below minimum", "Troponin I Reagent Kit · 34 left", "18m"], ["Shipment delayed", "SHP-2026-0177 · Customs hold", "1h"]
-  ].map(([title, note, time]) => <button key={title} onClick={() => onOpen(title)} className="flex w-full gap-3 px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-800"><span className={cn("mt-1.5 h-2 w-2 shrink-0 rounded-full", read ? "bg-slate-300" : "bg-coral")} /><span className="min-w-0 flex-1"><span className="block text-xs font-semibold">{title}</span><span className="mt-0.5 block truncate text-[11px] text-[var(--muted)]">{note}</span></span><span className="text-[10px] text-slate-400">{time}</span></button>)}</div><button onClick={onViewAll} className="w-full border-t py-3 text-xs font-semibold text-teal-600">View all notifications</button></div>;
+function NotificationPanel({ alerts, read, onMarkAll, onOpen, onViewAll }: { alerts: AlertRecord[]; read: boolean; onMarkAll: () => void; onOpen: (alert: AlertRecord) => void; onViewAll: () => void }) {
+  const visible = alerts.slice(0, 4);
+  return <div className="absolute right-0 top-12 w-[340px] overflow-hidden rounded-2xl border bg-[var(--panel)] shadow-panel animate-in"><div className="flex items-center justify-between border-b px-4 py-3.5"><div><div className="font-semibold">Notifications</div><div className="text-[11px] text-slate-400">{alerts.length ? `${alerts.length} local alerts require attention` : "You are all caught up"}</div></div><button onClick={onMarkAll} disabled={read || !alerts.length} className="text-xs font-semibold text-teal-600 disabled:text-slate-400">Mark all read</button></div><div className="divide-y">{visible.length ? visible.map(alert => <button key={alert["Alert No"]} onClick={() => onOpen(alert)} className="flex w-full gap-3 px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-800"><span className={cn("mt-1.5 h-2 w-2 shrink-0 rounded-full", read ? "bg-slate-300" : "bg-coral")} /><span className="min-w-0 flex-1"><span className="block truncate text-xs font-semibold">{alert["Alert Type"]}</span><span className="mt-0.5 block truncate text-[11px] text-[var(--muted)]">{alert["Source Record"]} - {alert.Message}</span></span><span className="text-[10px] text-slate-400">{alert.Priority}</span></button>) : <div className="px-4 py-8 text-center text-xs text-[var(--muted)]">No active local alerts.</div>}</div><button onClick={onViewAll} className="w-full border-t py-3 text-xs font-semibold text-teal-600">View all notifications</button></div>;
 }
