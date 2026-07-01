@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { employeeImportSchema, employeeOnboardingSchema, money, quotationSchema, userAccessSchema } from "@/lib/validation";
+import { accessProvisioningSchema, employeeImportSchema, employeeOnboardingSchema, money, quotationSchema, userAccessSchema } from "@/lib/validation";
 
 describe("ERP validation schemas", () => {
   it("accepts valid money and rejects negative or over-precision values", () => {
@@ -23,6 +23,12 @@ describe("ERP validation schemas", () => {
   it("requires valid user access fields and minimum temporary password length", () => {
     expect(userAccessSchema.safeParse({ User: "HR Test", Email: "hr.test@medtech.qa", Role: "HR Manager", Department: "HR", Password: "StrongPass1!", Status: "Active" }).success).toBe(true);
     expect(userAccessSchema.safeParse({ User: "H", Email: "invalid", Role: "", Department: "", Password: "123", Status: "Active" }).success).toBe(false);
+  });
+
+  it("validates HR access provisioning assignments", () => {
+    const access = { "Company ID": "MT-QA-0099", "Email Required": "Yes", "Company Car": "Not Assigned", Accommodation: "Assigned", Desk: "Assigned", Stationery: "Assigned", Email: "Assigned", "Business Card": "Not Assigned", "Laptop Required": "Yes", "Laptop or PC": "Laptop", "Mobile Required": "No" };
+    expect(accessProvisioningSchema.safeParse(access).success).toBe(true);
+    expect(accessProvisioningSchema.safeParse({ ...access, "Laptop or PC": "Tablet" }).success).toBe(false);
   });
 
   it("rejects invalid quotation lines and discounts", () => {
