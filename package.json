@@ -15,7 +15,10 @@
     "test:users": "node scripts/create-test-users.mjs",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "test:all": "npm run typecheck && npm run test:coverage && npm run test:db && npm run test:e2e"
+    "test:all": "npm run typecheck && npm run test:coverage && npm run test:db && npm run test:e2e",
+    "security:audit": "npm audit --audit-level=moderate",
+    "security:check": "npm run security:audit && npm run typecheck && npm run lint && npm run test && npm run build",
+    "security:sbom": "npm sbom --sbom-format=cyclonedx --json > docs/sbom.cdx.json"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",
@@ -29,9 +32,7 @@
     "next": "^15.3.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "recharts": "^3.4.1",
     "tailwind-merge": "^2.6.0",
-    "xlsx": "^0.18.5",
     "zod": "^3.24.2"
   },
   "devDependencies": {
@@ -53,6 +54,7 @@
     "vitest": "^3.2.6"
   },
   "overrides": {
+    "esbuild": "^0.28.1",
     "postcss": "^8.5.10",
     "uuid": "^11.1.1"
   }

@@ -3,7 +3,7 @@ node_modules/
 coverage/
 playwright-report/
 test-results/
-.env
-.env.local
-.env.test.local
+.env*
+!.env.example
+!.env.test.example
 output/test-artifacts/

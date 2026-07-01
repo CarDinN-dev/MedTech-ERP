@@ -1,5 +1,40 @@
 import type { NextConfig } from "next";
 
+const isDev = process.env.NODE_ENV !== "production";
+const supabaseOrigin = originFrom(process.env.NEXT_PUBLIC_SUPABASE_URL);
+const supabaseWsOrigin = supabaseOrigin.replace(/^http/, "ws");
+const connectSrc = ["'self'", ...(supabaseOrigin ? [supabaseOrigin, supabaseWsOrigin] : []), ...(isDev ? ["ws:", "http://localhost:*", "http://127.0.0.1:*"] : [])];
+const csp = [
+  "default-src 'self'",
+  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob:",
+  "font-src 'self' data:",
+  `connect-src ${connectSrc.join(" ")}`,
+  "media-src 'self' blob:",
+  "worker-src 'self' blob:",
+  "manifest-src 'self'",
+  "frame-src 'none'",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'none'",
+  "upgrade-insecure-requests"
+].filter(item => isDev ? item !== "upgrade-insecure-requests" : true).join("; ");
+
+const securityHeaders = [
+  { key: "Content-Security-Policy", value: csp },
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "X-Frame-Options", value: "DENY" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=(), bluetooth=(), accelerometer=(), gyroscope=(), magnetometer=()" },
+  { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+  { key: "Cross-Origin-Resource-Policy", value: "same-origin" },
+  { key: "X-DNS-Prefetch-Control", value: "off" },
+  { key: "X-Permitted-Cross-Domain-Policies", value: "none" },
+  ...(!isDev ? [{ key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" }] : [])
+];
+
 const nextConfig: NextConfig = {
   output: "standalone",
   outputFileTracingRoot: process.cwd(),
@@ -7,13 +42,12 @@ const nextConfig: NextConfig = {
   experimental: { optimizePackageImports: ["lucide-react", "recharts"] },
   headers: async () => [{
     source: "/(.*)",
-    headers: [
-      { key: "X-Content-Type-Options", value: "nosniff" },
-      { key: "X-Frame-Options", value: "DENY" },
-      { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-      { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" }
-    ]
+    headers: securityHeaders
   }]
 };
 
 export default nextConfig;
+
+function originFrom(value?: string) {
+  try { return value ? new URL(value).origin : ""; } catch { return ""; }
+}
