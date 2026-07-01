@@ -9,7 +9,13 @@ export interface HrView {
   defaultValues?: Record<string, string>;
 }
 
-export const hrTabs = ["Dashboard", "Employees", "Departments", "Recruitment", "Attendance", "Leave", "Payroll", "Loans & advances", "Gratuity", "Documents", "Approvals", "Reports", "Self service", "Settings"] as const;
+export const hrTabs = [
+  "Dashboard", "Employees", "Departments", "Contracts",
+  "Probation Reviews", "Access Provisioning", "Recruitment", "Attendance", "Attendance Exceptions", "Leave",
+  "Business Trips", "Employee Expenses", "Payroll", "Loans & advances", "Performance/Appraisals", "eLearning",
+  "EOS / Gratuity / Final Settlement", "Payroll Accounting Draft Journal", "Documents", "Approvals", "Reports",
+  "Self service", "Settings"
+] as const;
 export type HrTab = typeof hrTabs[number];
 
 const baseHrEmployees: Array<Record<string, string>> = [
@@ -23,6 +29,7 @@ const baseHrEmployees: Array<Record<string, string>> = [
 
 export const hrEmployees = baseHrEmployees.map(normalizeEmployeeRow);
 
+const businessTripPurposeOptions = ["Supplier product demo", "Service training", "Training", "Meeting", "Client Visit", "Events", "Exhibitions", "Recruitment", "Supplier Visits"];
 
 export const hrViews: Record<Exclude<HrTab, "Dashboard">, HrView> = {
   Employees: { primaryAction: "Add employee", columns: ["Employee No", "Full Name", "Department", "Job Title", "Line Manager", "Date Joined", "Status"], rows: hrEmployees },
@@ -32,6 +39,38 @@ export const hrViews: Record<Exclude<HrTab, "Dashboard">, HrView> = {
     { Department: "Human Resources", Code: "HR", "Cost center": "CC-300", "Department head": "HR Manager", Employees: "8", Parent: "Corporate", Status: "Active" },
     { Department: "Finance", Code: "FIN", "Cost center": "CC-200", "Department head": "Aisha Rahman", Employees: "12", Parent: "Corporate", Status: "Active" }
   ]},
+  Contracts: {
+    primaryAction: "Add contract",
+    columns: ["Contract No", "Employee Code", "Employee Name", "Contract Type", "Start Date", "End Date", "Renewal Status", "Approval Status", "Document Status"],
+    formColumns: ["Contract No", "Employee Code", "Employee Name", "Department", "Contract Type", "Start Date", "End Date", "Probation End Date", "Renewal Status", "Approval Status", "Document Status"],
+    rows: [
+      { "Contract No": "CON-2026-0018", "Employee Code": "MT-0018", "Employee Name": "Fahad Al-Kuwari", Department: "Sales", "Contract Type": "Unlimited", "Start Date": "12 Mar 2021", "End Date": "", "Probation End Date": "12 Sep 2021", "Renewal Status": "Not required", "Approval Status": "Approved", "Document Status": "Signed" },
+      { "Contract No": "CON-2026-0064", "Employee Code": "MT-0064", "Employee Name": "Leila D'Souza", Department: "Human Resources", "Contract Type": "Fixed term", "Start Date": "03 Feb 2025", "End Date": "02 Feb 2027", "Probation End Date": "03 Aug 2025", "Renewal Status": "Review due", "Approval Status": "Approved", "Document Status": "Signed" }
+    ],
+    selectOptions: { "Contract Type": ["Fixed term", "Unlimited", "Temporary", "Consultant"], "Renewal Status": ["Not required", "Review due", "Renewed", "Non-renewal"], "Approval Status": ["Draft", "Submitted", "Approved", "Rejected"], "Document Status": ["Pending", "Generated", "Signed", "Expired"] },
+    defaultValues: { "Contract No": "Auto generated", "Contract Type": "Fixed term", "Renewal Status": "Review due", "Approval Status": "Draft", "Document Status": "Pending" }
+  },
+  "Probation Reviews": {
+    primaryAction: "Add probation review",
+    columns: ["Review No", "Employee Code", "Employee Name", "Joining Date", "Probation End Date", "Manager Feedback", "HR Decision", "Status"],
+    rows: [
+      { "Review No": "PRB-2026-0064", "Employee Code": "MT-0064", "Employee Name": "Leila D'Souza", "Joining Date": "03 Feb 2025", "Probation End Date": "03 Aug 2025", "Manager Feedback": "Meets expectations", "HR Decision": "Confirmed", Status: "Closed" },
+      { "Review No": "PRB-2026-0072", "Employee Code": "MT-0072", "Employee Name": "Omar Nasser", "Joining Date": "14 Sep 2025", "Probation End Date": "14 Mar 2026", "Manager Feedback": "Extend review for warehouse controls", "HR Decision": "Extend probation", Status: "HR review" }
+    ],
+    selectOptions: { "HR Decision": ["Pending", "Confirmed", "Extend probation", "Terminate"], Status: ["Draft", "Manager review", "HR review", "Closed"] },
+    defaultValues: { "Review No": "Auto generated", "HR Decision": "Pending", Status: "Draft" }
+  },
+  "Access Provisioning": {
+    primaryAction: "Add access request",
+    columns: ["Request No", "Employee Code", "Employee Name", "Company ID", "Requested Access", "ERP Role", "Email Required", "Company Car", "Accommodation", "Desk", "Stationery", "Email", "Business Card", "Laptop Required", "Laptop or PC", "Mobile Required", "Approval Status", "Provisioning Status"],
+    formColumns: ["Request No", "Employee Code", "Employee Name", "Company ID", "Requested Access", "ERP Role", "Email Required", "Company Car", "Accommodation", "Desk", "Stationery", "Email", "Business Card", "Laptop Required", "Laptop or PC", "Mobile Required", "Approval Status", "Provisioning Status"],
+    rows: [
+      { "Request No": "ACC-2026-0018", "Employee Code": "MT-0018", "Employee Name": "Fahad Al-Kuwari", "Company ID": "MT-QA-0018", "Requested Access": "Sales quotations and customer master", "ERP Role": "Sales Manager", "Email Required": "Yes", "Company Car": "Assigned", Accommodation: "Not Assigned", Desk: "Assigned", Stationery: "Assigned", Email: "Assigned", "Business Card": "Assigned", "Laptop Required": "Yes", "Laptop or PC": "Laptop", "Mobile Required": "Yes", "Approval Status": "Approved", "Provisioning Status": "Provisioned" },
+      { "Request No": "ACC-2026-0064", "Employee Code": "MT-0064", "Employee Name": "Leila D'Souza", "Company ID": "MT-QA-0064", "Requested Access": "HR self service administration", "ERP Role": "HR Officer", "Email Required": "Yes", "Company Car": "Not Assigned", Accommodation: "Not Assigned", Desk: "Assigned", Stationery: "Assigned", Email: "Assigned", "Business Card": "Not Assigned", "Laptop Required": "Yes", "Laptop or PC": "Laptop", "Mobile Required": "No", "Approval Status": "Submitted", "Provisioning Status": "Pending" }
+    ],
+    selectOptions: { "ERP Role": ["Employee", "HR Officer", "Payroll Manager", "Finance User", "Sales Manager", "Warehouse User"], "Email Required": ["Yes", "No"], "Company Car": ["Assigned", "Not Assigned"], Accommodation: ["Assigned", "Not Assigned"], Desk: ["Assigned", "Not Assigned"], Stationery: ["Assigned", "Not Assigned"], Email: ["Assigned", "Not Assigned"], "Business Card": ["Assigned", "Not Assigned"], "Laptop Required": ["Yes", "No"], "Laptop or PC": ["Laptop", "PC", "Not Required"], "Mobile Required": ["Yes", "No"], "Approval Status": ["Draft", "Submitted", "Approved", "Rejected"], "Provisioning Status": ["Pending", "Provisioned", "Rejected", "Cancelled"] },
+    defaultValues: { "Request No": "Auto generated", "ERP Role": "Employee", "Email Required": "Yes", "Company Car": "Not Assigned", Accommodation: "Not Assigned", Desk: "Not Assigned", Stationery: "Not Assigned", Email: "Not Assigned", "Business Card": "Not Assigned", "Laptop Required": "No", "Laptop or PC": "Not Required", "Mobile Required": "No", "Approval Status": "Draft", "Provisioning Status": "Pending" }
+  },
   Recruitment: { primaryAction: "New vacancy request", columns: ["Request", "Position", "Department", "Candidates", "Stage", "Owner", "Status"], rows: [
     { Request: "REC-2026-0042", Position: "Service Engineer", Department: "Service", Candidates: "18", Stage: "Interview", Owner: "HR Officer", Status: "Approved" },
     { Request: "REC-2026-0040", Position: "Sales Executive", Department: "Sales", Candidates: "24", Stage: "Screening", Owner: "HR Officer", Status: "In progress" },
@@ -42,11 +81,43 @@ export const hrViews: Record<Exclude<HrTab, "Dashboard">, HrView> = {
     { Employee: "Aisha Rahman", Date: "20 Jun 2026", "Check in": "08:12", "Check out": "17:02", Hours: "8h 50m", Overtime: "-", Status: "Late" },
     { Employee: "Naveen Kumar", Date: "20 Jun 2026", "Check in": "-", "Check out": "-", Hours: "0h", Overtime: "-", Status: "On leave" }
   ]},
+  "Attendance Exceptions": {
+    primaryAction: "Add attendance exception",
+    columns: ["Exception No", "Employee Code", "Employee Name", "Date", "Exception Type", "Reason", "Correction", "Approval Status", "Status"],
+    rows: [
+      { "Exception No": "AEX-2026-0101", "Employee Code": "MT-0024", "Employee Name": "Aisha Rahman", Date: "20 Jun 2026", "Exception Type": "Late In", Reason: "Traffic delay", Correction: "Accept 08:12 check-in", "Approval Status": "Manager Approved", Status: "Closed" },
+      { "Exception No": "AEX-2026-0102", "Employee Code": "MT-0053", "Employee Name": "Mariam Said", Date: "17 Jun 2026", "Exception Type": "Missed Punch", Reason: "Forgot checkout", Correction: "Manual checkout 17:00", "Approval Status": "Submitted", Status: "HR review" }
+    ],
+    selectOptions: { "Exception Type": ["Late In", "Early Out", "Missed Punch", "Absent", "Duplicate Punch", "Manual Correction", "On Leave Conflict"], "Approval Status": ["Draft", "Submitted", "Manager Approved", "HR Approved", "Rejected"], Status: ["Draft", "Submitted", "HR review", "Closed", "Cancelled"] },
+    defaultValues: { "Exception No": "Auto generated", "Exception Type": "Late In", "Approval Status": "Draft", Status: "Draft" }
+  },
   Leave: { primaryAction: "Apply leave", columns: ["Request", "Employee", "Leave type", "From", "To", "Days", "Balance", "Status"], rows: [
     { Request: "LV-2026-00128", Employee: "Naveen Kumar", "Leave type": "Annual leave", From: "20 Jun 2026", To: "24 Jun 2026", Days: "5", Balance: "17 days", Status: "Approved" },
     { Request: "LV-2026-00131", Employee: "Mariam Said", "Leave type": "Sick leave", From: "22 Jun 2026", To: "22 Jun 2026", Days: "1", Balance: "12 days", Status: "Pending approval" },
     { Request: "LV-2026-00134", Employee: "Leila D'Souza", "Leave type": "Emergency leave", From: "25 Jun 2026", To: "26 Jun 2026", Days: "2", Balance: "3 days", Status: "Manager review" }
   ]},
+  "Business Trips": {
+    primaryAction: "Add business trip",
+    columns: ["Trip No", "Employee Code", "Employee Name", "Destination", "Purpose", "From", "To", "Estimated Cost", "Status"],
+    formColumns: ["Trip No", "Employee Code", "Employee Name", "Department", "Destination", "Purpose", "From", "To", "Estimated Cost", "Advance Required", "Manager", "Status"],
+    rows: [
+      { "Trip No": "BT-2026-0021", "Employee Code": "MT-0018", "Employee Name": "Fahad Al-Kuwari", Department: "Sales", Destination: "Riyadh", Purpose: "Supplier product demo", From: "08 Jul 2026", To: "10 Jul 2026", "Estimated Cost": "QAR 4,800", "Advance Required": "Yes", Manager: "Sales Manager", Status: "Manager Approved" },
+      { "Trip No": "BT-2026-0022", "Employee Code": "MT-0041", "Employee Name": "Naveen Kumar", Department: "Service", Destination: "Dubai", Purpose: "Service training", From: "15 Jul 2026", To: "18 Jul 2026", "Estimated Cost": "QAR 6,200", "Advance Required": "No", Manager: "Service Manager", Status: "HR/Admin Processing" }
+    ],
+    selectOptions: { Purpose: businessTripPurposeOptions, "Advance Required": ["Yes", "No"], Status: ["Draft", "Submitted", "Manager Approved", "HR/Admin Processing", "Finance Processing", "Travel Completed", "Closed"] },
+    defaultValues: { "Trip No": "Auto generated", Purpose: "Training", "Advance Required": "No", Status: "Draft" }
+  },
+  "Employee Expenses": {
+    primaryAction: "Add employee expense",
+    columns: ["Expense No", "Employee Code", "Employee Name", "Expense Type", "Claim Date", "Amount", "Project / Trip", "Status"],
+    formColumns: ["Expense No", "Employee Code", "Employee Name", "Department", "Expense Type", "Claim Date", "Amount", "Project / Trip", "Receipt Status", "Finance Remarks", "Status"],
+    rows: [
+      { "Expense No": "EXP-2026-0038", "Employee Code": "MT-0018", "Employee Name": "Fahad Al-Kuwari", Department: "Sales", "Expense Type": "Travel", "Claim Date": "12 Jun 2026", Amount: "QAR 1,240", "Project / Trip": "BT-2026-0021", "Receipt Status": "Attached", "Finance Remarks": "", Status: "Manager Approved" },
+      { "Expense No": "EXP-2026-0039", "Employee Code": "MT-0041", "Employee Name": "Naveen Kumar", Department: "Service", "Expense Type": "Tools", "Claim Date": "18 Jun 2026", Amount: "QAR 380", "Project / Trip": "Service call", "Receipt Status": "Attached", "Finance Remarks": "VAT checked", Status: "Finance Validated" }
+    ],
+    selectOptions: { "Expense Type": ["Travel", "Meals", "Tools", "Training", "Fuel", "Other"], "Receipt Status": ["Pending", "Attached", "Not required"], Status: ["Draft", "Submitted", "Manager Approved", "Finance Validated", "Reimbursed", "Rejected", "Cancelled"] },
+    defaultValues: { "Expense No": "Auto generated", "Expense Type": "Travel", "Receipt Status": "Pending", Status: "Draft" }
+  },
   Payroll: { primaryAction: "Generate payroll", columns: ["Payroll run", "Period", "Employees", "Gross pay", "Deductions", "Net pay", "Status"], rows: [
     { "Payroll run": "PAY-2026-06", Period: "June 2026", Employees: "126", "Gross pay": "QAR 1,284,600", Deductions: "QAR 48,200", "Net pay": "QAR 1,236,400", Status: "Validation" },
     { "Payroll run": "PAY-2026-05", Period: "May 2026", Employees: "122", "Gross pay": "QAR 1,246,300", Deductions: "QAR 42,880", "Net pay": "QAR 1,203,420", Status: "Paid" }
@@ -55,10 +126,47 @@ export const hrViews: Record<Exclude<HrTab, "Dashboard">, HrView> = {
     { Request: "LOAN-2026-0028", Employee: "Omar Nasser", Type: "Employee loan", "Original amount": "QAR 24,000", Installment: "QAR 2,000", Outstanding: "QAR 14,000", Status: "Active" },
     { Request: "ADV-2026-0041", Employee: "Mariam Said", Type: "Salary advance", "Original amount": "QAR 6,000", Installment: "QAR 2,000", Outstanding: "QAR 4,000", Status: "Approved" }
   ]},
-  Gratuity: { primaryAction: "Calculate gratuity", columns: ["Employee", "Joining date", "Service years", "Last basic salary", "Estimated liability", "As of", "Status"], rows: [
-    { Employee: "Fahad Al-Kuwari", "Joining date": "12 Mar 2021", "Service years": "5.27", "Last basic salary": "QAR 14,500", "Estimated liability": "QAR 53,490", "As of": "20 Jun 2026", Status: "Calculated" },
-    { Employee: "Aisha Rahman", "Joining date": "02 Sep 2021", "Service years": "4.80", "Last basic salary": "QAR 12,800", "Estimated liability": "QAR 43,008", "As of": "20 Jun 2026", Status: "Calculated" }
-  ]},
+  "Performance/Appraisals": {
+    primaryAction: "Add appraisal",
+    columns: ["Appraisal No", "Employee Code", "Employee Name", "Cycle", "Goals", "Rating", "Recommendation", "Status"],
+    formColumns: ["Appraisal No", "Employee Code", "Employee Name", "Department", "Cycle", "Goals", "Manager Comments", "Rating", "Increment Recommendation", "Promotion Recommendation", "Recommendation", "Status"],
+    rows: [
+      { "Appraisal No": "APR-2026-0018", "Employee Code": "MT-0018", "Employee Name": "Fahad Al-Kuwari", Department: "Sales", Cycle: "H1 2026", Goals: "Revenue target; customer retention", "Manager Comments": "Strong key account coverage", Rating: "4 - Exceeds", "Increment Recommendation": "8%", "Promotion Recommendation": "No", Recommendation: "Increment", Status: "Manager submitted" },
+      { "Appraisal No": "APR-2026-0041", "Employee Code": "MT-0041", "Employee Name": "Naveen Kumar", Department: "Service", Cycle: "H1 2026", Goals: "Service SLA; training completion", "Manager Comments": "Good technical closure rate", Rating: "3 - Meets", "Increment Recommendation": "5%", "Promotion Recommendation": "No", Recommendation: "Increment", Status: "HR review" }
+    ],
+    selectOptions: { Cycle: ["H1 2026", "FY 2026", "Probation", "Promotion review"], Rating: ["1 - Needs improvement", "2 - Developing", "3 - Meets", "4 - Exceeds", "5 - Outstanding"], "Promotion Recommendation": ["Yes", "No"], Status: ["Draft", "Employee input", "Manager submitted", "HR review", "Closed"] },
+    defaultValues: { "Appraisal No": "Auto generated", Cycle: "H1 2026", Rating: "3 - Meets", "Promotion Recommendation": "No", Status: "Draft" }
+  },
+  eLearning: {
+    primaryAction: "Add learning assignment",
+    columns: ["Assignment No", "Employee Code", "Employee Name", "Course", "Due Date", "Score", "HR Review", "Completion Status"],
+    rows: [
+      { "Assignment No": "ELN-2026-0041", "Employee Code": "MT-0041", "Employee Name": "Naveen Kumar", Course: "Biomedical safety refresher", "Due Date": "30 Jun 2026", Score: "92%", "HR Review": "Completed", "Completion Status": "Completed" },
+      { "Assignment No": "ELN-2026-0053", "Employee Code": "MT-0053", "Employee Name": "Mariam Said", Course: "Procurement ethics", "Due Date": "15 Jul 2026", Score: "", "HR Review": "Pending", "Completion Status": "Assigned" }
+    ],
+    selectOptions: { Course: ["Biomedical safety refresher", "Procurement ethics", "ERP user training", "QHSE induction", "Sales compliance"], "HR Review": ["Pending", "Completed", "Needs follow-up"], "Completion Status": ["Assigned", "In progress", "Completed", "Overdue"] },
+    defaultValues: { "Assignment No": "Auto generated", Course: "ERP user training", "HR Review": "Pending", "Completion Status": "Assigned" }
+  },
+  "EOS / Gratuity / Final Settlement": {
+    primaryAction: "Add final settlement",
+    columns: ["Settlement No", "Employee Code", "Employee Name", "Case Type", "Last Working Day", "Working Days Salary", "Leave Balance Encashment", "Gratuity", "Loan Balance Deduction", "Other Deductions", "Final Payable", "Status"],
+    rows: [
+      { "Settlement No": "EOS-2026-001", "Employee Code": "MT-0024", "Employee Name": "Aisha Rahman", "Case Type": "Resignation", "Last Working Day": "30 Sep 2026", "Working Days Salary": "QAR 17,500", "Leave Balance Encashment": "QAR 5,200", Gratuity: "QAR 43,008", "Loan Balance Deduction": "QAR 0", "Other Deductions": "QAR 0", "Final Payable": "QAR 65,708", Status: "Draft" },
+      { "Settlement No": "EOS-2026-002", "Employee Code": "MT-0072", "Employee Name": "Omar Nasser", "Case Type": "Termination", "Last Working Day": "31 Jul 2026", "Working Days Salary": "QAR 11,900", "Leave Balance Encashment": "QAR 1,850", Gratuity: "QAR 6,225", "Loan Balance Deduction": "QAR 14,000", "Other Deductions": "QAR 350", "Final Payable": "QAR 5,625", Status: "HR review" }
+    ],
+    selectOptions: { "Case Type": ["Resignation", "Termination", "Contract end"], Status: ["Draft", "Submitted", "HR review", "Finance review", "Approved", "Paid", "Closed"] },
+    defaultValues: { "Settlement No": "Auto generated", "Case Type": "Resignation", "Working Days Salary": "QAR 0", "Leave Balance Encashment": "QAR 0", Gratuity: "QAR 0", "Loan Balance Deduction": "QAR 0", "Other Deductions": "QAR 0", Status: "Draft" }
+  },
+  "Payroll Accounting Draft Journal": {
+    primaryAction: "Add draft journal line",
+    columns: ["Journal No", "Payroll Run", "Employee Code", "Employee Name", "Cost Center", "Allocation %", "Amount", "Finance Journal Draft", "Status"],
+    rows: [
+      { "Journal No": "PAY-JRN-2026-001", "Payroll Run": "MPR-MEDTECH-2026-06-Sales", "Employee Code": "MT-0018", "Employee Name": "Fahad Al-Kuwari", "Cost Center": "CC-400-Sales", "Allocation %": "70", Amount: "QAR 14,000", "Finance Journal Draft": "Draft", Status: "Draft" },
+      { "Journal No": "PAY-JRN-2026-002", "Payroll Run": "MPR-MEDTECH-2026-06-Sales", "Employee Code": "MT-0018", "Employee Name": "Fahad Al-Kuwari", "Cost Center": "CC-410-Key Accounts", "Allocation %": "30", Amount: "QAR 6,000", "Finance Journal Draft": "Draft", Status: "Draft" }
+    ],
+    selectOptions: { Status: ["Draft", "Generated", "Cancelled"] },
+    defaultValues: { "Journal No": "Auto generated", "Finance Journal Draft": "Draft", Status: "Draft" }
+  },
   Documents: { primaryAction: "Upload document", columns: ["Document", "Employee", "Category", "Version", "Expiry", "Access", "Status"], rows: [
     { Document: "QID_MT0041.pdf", Employee: "Naveen Kumar", Category: "Qatar ID", Version: "2.0", Expiry: "02 Jul 2026", Access: "HR only", Status: "Expiring soon" },
     { Document: "Employment_Contract_MT0024.pdf", Employee: "Aisha Rahman", Category: "Contract", Version: "1.1", Expiry: "01 Sep 2026", Access: "HR & Employee", Status: "Active" },
