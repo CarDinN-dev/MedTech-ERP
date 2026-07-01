@@ -3,7 +3,7 @@
 import type { DemoSession } from "@/lib/demo-auth";
 
 export const erpActions = ["view", "create", "edit", "delete/archive", "approve", "reject", "export", "import", "generate PDF", "reset demo data", "finalize/post/lock"] as const;
-export const erpModules = ["Sales", "CRM", "Costing", "Procurement", "Inventory", "Finance", "Service", "Projects", "HR", "Payroll", "Documents", "Reports", "Admin", "Setup", "Approvals"] as const;
+export const erpModules = ["Sales", "CRM", "Costing", "Procurement", "Inventory", "Quality", "Finance", "Service", "Projects", "HR", "Payroll", "Documents", "Reports", "Admin", "Setup", "Approvals"] as const;
 export const erpRoles = ["Super Admin", "Management", "Finance Manager", "HR Manager", "HR Officer", "Payroll Manager", "Department Manager", "Employee", "Sales Manager", "Sales Executive", "Shipping Team", "Warehouse Team", "Procurement Team", "Service Engineer", "Project Manager", "Read-only Auditor"] as const;
 
 export type ErpAction = typeof erpActions[number];
@@ -18,7 +18,7 @@ const post = new Set<ErpAction>(["view", "create", "edit", "approve", "reject", 
 
 export const rolePermissions: Record<ErpRole, Partial<Record<ErpModule, Set<ErpAction>>>> = {
   "Super Admin": Object.fromEntries(erpModules.map(module => [module, all])) as Record<ErpModule, Set<ErpAction>>,
-  Management: { Sales: decision, Procurement: decision, Inventory: decision, Finance: decision, Service: decision, Projects: decision, HR: decision, Payroll: decision, Reports: read, Approvals: decision },
+  Management: { Sales: decision, Procurement: decision, Inventory: decision, Quality: decision, Finance: decision, Service: decision, Projects: decision, HR: decision, Payroll: decision, Reports: read, Approvals: decision },
   "Finance Manager": { Finance: post, Procurement: decision, Costing: decision, Payroll: decision, Reports: read, Approvals: decision },
   "HR Manager": { HR: post, Payroll: decision, Documents: work, Reports: read, Approvals: decision },
   "HR Officer": { HR: work, Documents: work, Reports: read },
@@ -28,9 +28,9 @@ export const rolePermissions: Record<ErpRole, Partial<Record<ErpModule, Set<ErpA
   "Sales Manager": { Sales: post, CRM: post, Costing: decision, Reports: read, Approvals: decision },
   "Sales Executive": { Sales: work, CRM: work, Costing: work, Documents: work, Reports: read },
   "Shipping Team": { Sales: read, Inventory: work, Procurement: read, Documents: work, Reports: read },
-  "Warehouse Team": { Inventory: post, Procurement: work, Documents: work, Reports: read, Approvals: work },
-  "Procurement Team": { Procurement: work, Inventory: read, Finance: read, Documents: work, Reports: read, Approvals: work },
-  "Service Engineer": { Service: work, Inventory: read, Documents: work, Reports: read },
+  "Warehouse Team": { Inventory: post, Quality: work, Procurement: work, Documents: work, Reports: read, Approvals: work },
+  "Procurement Team": { Procurement: work, Inventory: read, Quality: work, Finance: read, Documents: work, Reports: read, Approvals: work },
+  "Service Engineer": { Service: work, Inventory: read, Quality: read, Documents: work, Reports: read },
   "Project Manager": { Projects: post, Sales: read, Costing: decision, Procurement: decision, Finance: read, Documents: work, Reports: read, Approvals: decision },
   "Read-only Auditor": Object.fromEntries(erpModules.map(module => [module, new Set<ErpAction>(["view"])])) as Record<ErpModule, Set<ErpAction>>
 };
@@ -44,7 +44,7 @@ export function permissionModule(moduleKey: string, tab = ""): ErpModule {
   if (moduleKey === "sales" && tab === "Estimation / Costing") return "Costing";
   if (moduleKey === "hr" && tab.toLowerCase().includes("payroll")) return "Payroll";
   if (moduleKey === "admin" && ["Master Setup", "Business Units", "Departments", "Cost Centers", "Document Sequences", "Approval Thresholds", "Currencies", "Payment Terms", "Workflow Statuses", "Numbering"].includes(tab)) return "Setup";
-  const map: Record<string, ErpModule> = { sales: "Sales", procurement: "Procurement", inventory: "Inventory", finance: "Finance", service: "Service", projects: "Projects", hr: "HR", documents: "Documents", reports: "Reports", admin: "Admin", approvals: "Approvals", shipping: "Inventory" };
+  const map: Record<string, ErpModule> = { sales: "Sales", procurement: "Procurement", inventory: "Inventory", quality: "Quality", finance: "Finance", service: "Service", projects: "Projects", hr: "HR", documents: "Documents", reports: "Reports", admin: "Admin", approvals: "Approvals", shipping: "Inventory" };
   return map[moduleKey] ?? "Reports";
 }
 

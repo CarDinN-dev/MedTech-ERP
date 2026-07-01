@@ -5,6 +5,8 @@ import { salesCrmViews } from "@/lib/sales-crm";
 import { rolePermissionRows } from "@/lib/erp-security";
 import { getFinanceView } from "@/lib/finance-workflow";
 import { getShippingView } from "@/lib/shipping-workflow";
+import { getQualityView } from "@/lib/quality-workflow";
+import { getAttachmentView } from "@/lib/attachment-workflow";
 
 export interface DemoTabView { columns: string[]; rows: Array<Record<string, string>>; }
 
@@ -222,5 +224,7 @@ const alternateViews: Record<string, DemoTabView> = {
 export function getDemoTabView(module: ModuleDefinition, tab: string): DemoTabView {
   if (module.key === "finance") return getFinanceView(tab) ?? { columns: module.columns, rows: module.rows };
   if (module.key === "shipping") return getShippingView(tab) ?? { columns: module.columns, rows: module.rows };
+  if (module.key === "quality") return getQualityView(tab) ?? { columns: module.columns, rows: module.rows };
+  if (module.key === "documents") return getAttachmentView(tab) ?? alternateViews[`${module.key}.${tab}`] ?? { columns: module.columns, rows: module.rows };
   return alternateViews[`${module.key}.${tab}`] ?? { columns: module.columns, rows: module.rows };
 }

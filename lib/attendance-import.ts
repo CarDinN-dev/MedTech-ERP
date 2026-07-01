@@ -7,11 +7,18 @@ export interface AttendanceImportResult {
 }
 
 export async function parseAttendanceLog(file: File, salaryByEmployee: Map<string, number>) {
-  const XLSX = await import("xlsx");
-  const workbook = XLSX.read(await file.arrayBuffer(), { type: "array", cellDates: true });
-  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  if (!/\.(xlsx|xlsm)$/i.test(file.name) || !["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/vnd.ms-excel.sheet.macroEnabled.12", ""].includes(file.type)) throw new Error("Only .xlsx or .xlsm attendance workbooks are allowed");
+  if (file.size > 5 * 1024 * 1024) throw new Error("Attendance workbook exceeds the 5 MB local-demo import limit");
+  const ExcelJS = await import("exceljs");
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(await file.arrayBuffer());
+  const sheet = workbook.worksheets[0];
   if (!sheet) throw new Error("Workbook has no worksheet");
-  const rows = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1, raw: false, defval: "", blankrows: false });
+  const rows = Array.from({ length: sheet.rowCount }, (_, index) => {
+    const row = sheet.getRow(index + 1);
+    return Array.from({ length: sheet.columnCount }, (__, column) => row.getCell(column + 1).text || "");
+  }).filter(row => row.some(Boolean));
+  if (rows.length > 5000) throw new Error("Attendance workbook exceeds the 5000 row local-demo import limit");
   return attendanceRowsFromGrid(rows, salaryByEmployee);
 }
 

@@ -272,3 +272,393 @@ export const medtechScopeViews: Record<string, DemoTabView> = {
     { Simulator: "E-Invoicing XML Preview", Input: "Invoice draft", Output: "XML preview text", "Local Demo Only": "Yes", "External calls": "No", Status: "Placeholder" }
   ])
 };
+
+export const expertLayerViews: Record<string, DemoTabView> = {
+  "sales.Account Plans": view(["Plan", "Customer", "Owner", "BU", "FY Target", "White Space", "Next Review", "Status"], [
+    { Plan: "ACP-2026-HMC", Customer: "Hamad Medical Corporation", Owner: "F. Al-Kuwari", BU: "Medical Equipment", "FY Target": "QAR 4,800,000", "White Space": "ICU monitoring, CSSD", "Next Review": "2026-07-05", Status: "Active" },
+    { Plan: "ACP-2026-SIDRA", Customer: "Sidra Medicine", Owner: "R. Mathew", BU: "Diagnostics", "FY Target": "QAR 2,600,000", "White Space": "Reagent rental, AMC", "Next Review": "2026-07-12", Status: "Review due" }
+  ]),
+  "sales.Visit Logs": view(["Visit", "Customer", "Contact", "Owner", "Purpose", "Next Action", "Due Date", "Status"], [
+    { Visit: "VIS-2026-0148", Customer: "Hamad Medical Corporation", Contact: "Biomedical desk", Owner: "F. Al-Kuwari", Purpose: "Quotation review", "Next Action": "Submit revised validity", "Due Date": "2026-07-02", Status: "Follow-up due" },
+    { Visit: "VIS-2026-0141", Customer: "Doha Clinic", Contact: "Lab manager", Owner: "R. Mathew", Purpose: "Consumables forecast", "Next Action": "Send pricelist", "Due Date": "2026-07-06", Status: "Open" }
+  ]),
+  "sales.Communication History": view(["Communication", "Customer", "Channel", "Contact", "Owner", "Summary", "Linked Record", "Status"], [
+    { Communication: "COM-2026-0320", Customer: "Sidra Medicine", Channel: "Phone", Contact: "Procurement", Owner: "R. Mathew", Summary: "Asked for contract pricing confirmation", "Linked Record": "QTN-2026-00311", Status: "Logged" },
+    { Communication: "COM-2026-0317", Customer: "Hamad Medical Corporation", Channel: "Email", Contact: "ICU project team", Owner: "F. Al-Kuwari", Summary: "Quote validity extension requested", "Linked Record": "QTN-2026-00314", Status: "Action required" }
+  ]),
+  "sales.Competitor Tracking": view(["Tracker", "Customer", "Opportunity", "Competitor", "Observed Price", "Threat", "Counter Action", "Status"], [
+    { Tracker: "CMP-2026-0061", Customer: "Hamad Medical Corporation", Opportunity: "ICU Monitoring Upgrade", Competitor: "Philips", "Observed Price": "5% lower", Threat: "High", "Counter Action": "Bundle service warranty", Status: "Open" },
+    { Tracker: "CMP-2026-0058", Customer: "Aman Hospital", Opportunity: "CSSD Equipment", Competitor: "Steris", "Observed Price": "Unknown", Threat: "Medium", "Counter Action": "Arrange demo", Status: "Monitoring" }
+  ]),
+  "sales.Lost Reason Taxonomy": view(["Reason Code", "Category", "Description", "Applies To", "Owner", "Corrective Action", "Status"], [
+    { "Reason Code": "LOSS-PRICE", Category: "Commercial", Description: "Competitor price below approved floor", "Applies To": "Quotations", Owner: "Sales Operations", "Corrective Action": "Review cost sheet and principal rebate", Status: "Active" },
+    { "Reason Code": "LOSS-SPEC", Category: "Technical", Description: "Specification mismatch", "Applies To": "Tenders", Owner: "Product Manager", "Corrective Action": "Pre-bid technical review", Status: "Active" }
+  ]),
+  "sales.Quote Validity Alerts": view(["Alert", "Quotation", "Customer", "Owner", "Valid Until", "Days Left", "Action", "Status"], [
+    { Alert: "QVA-2026-0017", Quotation: "QTN-2026-00314", Customer: "Hamad Medical Corporation", Owner: "F. Al-Kuwari", "Valid Until": "2026-07-04", "Days Left": "3", Action: "Request extension approval", Status: "Urgent" },
+    { Alert: "QVA-2026-0014", Quotation: "QTN-2026-00311", Customer: "Sidra Medicine", Owner: "R. Mathew", "Valid Until": "2026-07-12", "Days Left": "11", Action: "Follow up with customer", Status: "Open" }
+  ]),
+  "sales.Credit Control Warnings": view(["Warning", "Customer", "Credit Limit", "Current Exposure", "Quotation", "Required Action", "Finance Owner", "Status"], [
+    { Warning: "CCW-2026-0022", Customer: "Hamad Medical Corporation", "Credit Limit": "QAR 1,000,000", "Current Exposure": "QAR 1,184,500", Quotation: "QTN-2026-00314", "Required Action": "Finance override before submit", "Finance Owner": "Aisha Rahman", Status: "Blocked" },
+    { Warning: "CCW-2026-0018", Customer: "Doha Clinic", "Credit Limit": "QAR 250,000", "Current Exposure": "QAR 174,600", Quotation: "QTN-2026-00308", "Required Action": "Warn salesperson", "Finance Owner": "Credit Controller", Status: "Warning" }
+  ]),
+  "sales.Contract & Pricelist Checks": view(["Check", "Customer", "Quotation", "Contract", "Pricelist", "Mismatch", "Action", "Status"], [
+    { Check: "CPC-2026-0044", Customer: "Sidra Medicine", Quotation: "QTN-2026-00311", Contract: "AMC-2026-0038", Pricelist: "SIDRA-DIAG-2026", Mismatch: "Reagent discount missing", Action: "Apply contract pricelist", Status: "Action required" },
+    { Check: "CPC-2026-0040", Customer: "Hamad Medical Corporation", Quotation: "QTN-2026-00314", Contract: "HMC-FW-2026", Pricelist: "HMC-EQP-2026", Mismatch: "None", Action: "Proceed", Status: "Passed" }
+  ]),
+  "sales.Sales Targets": view(["Target Plan", "Salesperson", "BU", "Period", "Target", "Actual", "Gap", "Status"], [
+    { "Target Plan": "TGT-2026-Q3-FAK", Salesperson: "F. Al-Kuwari", BU: "Medical Equipment", Period: "Q3 2026", Target: "QAR 2,100,000", Actual: "QAR 1,460,000", Gap: "QAR 640,000", Status: "On track" },
+    { "Target Plan": "TGT-2026-Q3-RM", Salesperson: "R. Mathew", BU: "Diagnostics", Period: "Q3 2026", Target: "QAR 1,400,000", Actual: "QAR 720,000", Gap: "QAR 680,000", Status: "Watch" }
+  ]),
+  "sales.Follow-up Tasks": view(["Task", "Customer", "Owner", "Related Record", "Due Date", "Priority", "Next Step", "Status"], [
+    { Task: "FUP-2026-0221", Customer: "Hamad Medical Corporation", Owner: "F. Al-Kuwari", "Related Record": "QTN-2026-00314", "Due Date": "2026-07-02", Priority: "High", "Next Step": "Confirm revised validity", Status: "Overdue" },
+    { Task: "FUP-2026-0217", Customer: "Doha Clinic", Owner: "R. Mathew", "Related Record": "VIS-2026-0141", "Due Date": "2026-07-06", Priority: "Normal", "Next Step": "Send consumables forecast", Status: "Open" }
+  ]),
+
+  "procurement.Supplier Scorecard": view(["Scorecard", "Supplier", "OTD", "Quality", "Price Index", "Service", "Owner", "Status"], [
+    { Scorecard: "SSC-2026-SIE", Supplier: "Siemens Healthineers", OTD: "94%", Quality: "4.8 / 5", "Price Index": "Fair", Service: "Excellent", Owner: "M. Said", Status: "Approved" },
+    { Scorecard: "SSC-2026-BD", Supplier: "BD Biosciences", OTD: "89%", Quality: "4.5 / 5", "Price Index": "Watch", Service: "Good", Owner: "O. Nasser", Status: "Watch" }
+  ]),
+  "procurement.Lead-Time Variance": view(["Variance", "Supplier", "PO", "Promised Days", "Actual Days", "Variance Days", "Root Cause", "Status"], [
+    { Variance: "LTV-2026-0032", Supplier: "BD Biosciences", PO: "PO-2026-0126", "Promised Days": "14", "Actual Days": "21", "Variance Days": "+7", "Root Cause": "Cold-chain airline delay", Status: "Late" },
+    { Variance: "LTV-2026-0028", Supplier: "Thermo Fisher", PO: "PO-2026-0124", "Promised Days": "10", "Actual Days": "9", "Variance Days": "-1", "Root Cause": "Early dispatch", Status: "Closed" }
+  ]),
+  "procurement.MOQ & Incoterms": view(["Item", "Supplier", "SKU", "MOQ", "Incoterms", "Current Need", "Decision", "Status"], [
+    { Item: "MOQ-2026-0104", Supplier: "Thermo Fisher", SKU: "RG-TRP-100", MOQ: "40 kits", Incoterms: "DAP Doha", "Current Need": "34 kits", Decision: "Buy MOQ and reserve balance", Status: "Approved" },
+    { Item: "MOQ-2026-0098", Supplier: "Siemens Healthineers", SKU: "EQ-PM-0750", MOQ: "2 units", Incoterms: "CIP HIA", "Current Need": "1 unit", Decision: "Consolidate with project order", Status: "Buyer review" }
+  ]),
+  "procurement.Alternate Suppliers": view(["Mapping", "Primary Supplier", "Alternate Supplier", "Product Family", "Qualification", "Price Delta", "Lead Time Delta", "Status"], [
+    { Mapping: "ALT-2026-0018", "Primary Supplier": "BD Biosciences", "Alternate Supplier": "Thermo Fisher", "Product Family": "Diagnostics reagents", Qualification: "Approved", "Price Delta": "+3.8%", "Lead Time Delta": "-2 days", Status: "Active" },
+    { Mapping: "ALT-2026-0014", "Primary Supplier": "Siemens Healthineers", "Alternate Supplier": "GE Healthcare", "Product Family": "Patient monitors", Qualification: "Technical review", "Price Delta": "TBD", "Lead Time Delta": "TBD", Status: "Pending" }
+  ]),
+  "procurement.Agreement Expiry": view(["Agreement", "Supplier", "Owner", "Expiry Date", "Days Left", "Renewal Action", "Linked Document", "Status"], [
+    { Agreement: "AGR-2026-SIE", Supplier: "Siemens Healthineers", Owner: "Procurement Manager", "Expiry Date": "2026-09-30", "Days Left": "91", "Renewal Action": "Start principal review", "Linked Document": "Siemens Distribution Certificate.pdf", Status: "Open" },
+    { Agreement: "AGR-2026-THERMO", Supplier: "Thermo Fisher", Owner: "M. Said", "Expiry Date": "2026-07-28", "Days Left": "27", "Renewal Action": "Legal review", "Linked Document": "Thermo Fisher Quality Agreement.pdf", Status: "Urgent" }
+  ]),
+  "procurement.Landed Cost Comparison": view(["Comparison", "RFQ", "Supplier", "Quoted Cost", "Freight", "Duty", "Landed Cost", "Status"], [
+    { Comparison: "LCC-2026-0048", RFQ: "RFQ-2026-00148", Supplier: "Thermo Fisher", "Quoted Cost": "QAR 94,750", Freight: "QAR 4,200", Duty: "QAR 0", "Landed Cost": "QAR 98,950", Status: "Best landed" },
+    { Comparison: "LCC-2026-0049", RFQ: "RFQ-2026-00148", Supplier: "BD Biosciences", "Quoted Cost": "QAR 91,400", Freight: "QAR 9,600", Duty: "QAR 0", "Landed Cost": "QAR 101,000", Status: "Higher freight" }
+  ]),
+  "procurement.Savings Tracker": view(["Saving", "Supplier", "Buyer", "Baseline", "Final", "Savings", "Method", "Status"], [
+    { Saving: "SAV-2026-0038", Supplier: "Thermo Fisher", Buyer: "M. Said", Baseline: "QAR 102,000", Final: "QAR 94,750", Savings: "QAR 7,250", Method: "Negotiated discount", Status: "Validated" },
+    { Saving: "SAV-2026-0031", Supplier: "Siemens Healthineers", Buyer: "O. Nasser", Baseline: "QAR 642,000", Final: "QAR 624,000", Savings: "QAR 18,000", Method: "Bundle freight", Status: "Pending finance" }
+  ]),
+  "procurement.Delayed PO Alerts": view(["Alert", "PO", "Supplier", "ETA", "Days Late", "Impacted Module", "Action", "Status"], [
+    { Alert: "DPO-2026-0019", PO: "PO-2026-0126", Supplier: "BD Biosciences", ETA: "2026-06-30", "Days Late": "1", "Impacted Module": "Inventory", Action: "Escalate supplier and update sales", Status: "Late" },
+    { Alert: "DPO-2026-0016", PO: "PO-2026-0119", Supplier: "Medline Europe", ETA: "2026-06-20", "Days Late": "0", "Impacted Module": "Warehouse", Action: "Await QC release", Status: "Monitoring" }
+  ]),
+  "procurement.Supplier Performance Dashboard": view(["Metric", "Supplier", "Period", "Value", "Target", "Trend", "Owner", "Status"], [
+    { Metric: "On-time delivery", Supplier: "Siemens Healthineers", Period: "Q2 2026", Value: "94%", Target: "92%", Trend: "+2%", Owner: "Procurement Manager", Status: "On track" },
+    { Metric: "Quality incidents", Supplier: "BD Biosciences", Period: "Q2 2026", Value: "3", Target: "<=2", Trend: "+1", Owner: "Quality Manager", Status: "Watch" }
+  ]),
+
+  "inventory.Putaway Workflow": view(["Putaway", "GRN", "Product", "Suggested Location", "Assigned To", "Temperature Check", "Target Time", "Status"], [
+    { Putaway: "PUT-2026-0098", GRN: "GRN-2026-0098", Product: "Nitrile Examination Gloves", "Suggested Location": "MW-A-04", "Assigned To": "Warehouse Team", "Temperature Check": "Not required", "Target Time": "4 hrs", Status: "In progress" },
+    { Putaway: "PUT-2026-0094", GRN: "GRN-2026-0094", Product: "Troponin I Reagent Kit", "Suggested Location": "Cold Store CS-02", "Assigned To": "Omar Nasser", "Temperature Check": "Pass", "Target Time": "2 hrs", Status: "QC hold" }
+  ]),
+  "inventory.Pick Pack Dispatch": view(["Wave", "Sales Order", "Customer", "Picker", "Packer", "FEFO Lot", "Dispatch Handoff", "Status"], [
+    { Wave: "WAV-2026-0042", "Sales Order": "SO-2026-00218", Customer: "Doha Clinic", Picker: "Warehouse Team", Packer: "Shipping Team", "FEFO Lot": "LOT-TI-2604", "Dispatch Handoff": "DN-2026-00281", Status: "Ready to dispatch" },
+    { Wave: "WAV-2026-0039", "Sales Order": "SO-2026-00214", Customer: "Al Ahli Hospital", Picker: "Warehouse Team", Packer: "Shipping Team", "FEFO Lot": "SN-MX750-88421", "Dispatch Handoff": "Partial", Status: "Backorder" }
+  ]),
+  "inventory.ABC Classification": view(["SKU", "Product", "Annual Value", "ABC Class", "Count Frequency", "Owner", "Last Review", "Status"], [
+    { SKU: "EQ-PM-0750", Product: "Patient Monitor MX750", "Annual Value": "QAR 4,200,000", "ABC Class": "A", "Count Frequency": "Monthly", Owner: "Warehouse Manager", "Last Review": "2026-06-20", Status: "Active" },
+    { SKU: "CS-NGL-M", Product: "Nitrile Examination Gloves", "Annual Value": "QAR 180,000", "ABC Class": "C", "Count Frequency": "Quarterly", Owner: "Warehouse Team", "Last Review": "2026-06-15", Status: "Active" }
+  ]),
+  "inventory.ABC Cycle Count Schedule": view(["Schedule", "ABC Class", "Location", "Due Date", "Assigned To", "SKU Count", "Variance Limit", "Status"], [
+    { Schedule: "CYC-A-2026-07", "ABC Class": "A", Location: "Main Warehouse", "Due Date": "2026-07-05", "Assigned To": "Omar Nasser", "SKU Count": "28", "Variance Limit": "0.5%", Status: "Scheduled" },
+    { Schedule: "CYC-C-2026-Q3", "ABC Class": "C", Location: "Consumables", "Due Date": "2026-07-31", "Assigned To": "Warehouse Team", "SKU Count": "210", "Variance Limit": "2%", Status: "Open" }
+  ]),
+  "inventory.Stock Aging": view(["Aging", "SKU", "Product", "Location", "Age Bucket", "Quantity", "Value", "Status"], [
+    { Aging: "AGE-2026-0018", SKU: "SP-SPO2-A", Product: "Adult SpO2 Sensor", Location: "Main Warehouse", "Age Bucket": "180+ days", Quantity: "7", Value: "QAR 9,450", Status: "Slow moving" },
+    { Aging: "AGE-2026-0014", SKU: "RG-TRP-100", Product: "Troponin I Reagent Kit", Location: "Cold Store", "Age Bucket": "0-90 days", Quantity: "34", Value: "QAR 43,520", Status: "Healthy" }
+  ]),
+  "inventory.Expired Stock Handling": view(["Case", "SKU", "Lot", "Expiry Date", "Quantity", "Action", "QA Owner", "Status"], [
+    { Case: "EXP-HND-2026-0012", SKU: "RG-GLU-050", Lot: "LOT-GL-2511", "Expiry Date": "2026-08-09", Quantity: "12", Action: "Block dispatch and notify sales", "QA Owner": "Quality Team", Status: "Near expiry" },
+    { Case: "EXP-HND-2026-0009", SKU: "CS-NGL-M", Lot: "LOT-NG-0125", "Expiry Date": "2026-05-31", Quantity: "18", Action: "Scrap approval", "QA Owner": "Quality Manager", Status: "Expired" }
+  ]),
+  "inventory.Quarantine Release": view(["Release", "QC No", "Product", "Lot", "Decision", "Released By", "Release Date", "Status"], [
+    { Release: "QREL-2026-0024", "QC No": "QC-2026-0048", Product: "Troponin I Reagent Kit", Lot: "LOT-TI-2604", Decision: "Release to cold store", "Released By": "Quality Manager", "Release Date": "2026-06-21", Status: "Released" },
+    { Release: "QREL-2026-0021", "QC No": "QC-2026-0042", Product: "Nitrile Gloves", Lot: "LOT-NG-0626", Decision: "Hold for supplier CoA", "Released By": "Quality Team", "Release Date": "", Status: "On hold" }
+  ]),
+  "inventory.Cold Chain Warnings": view(["Warning", "SKU", "Lot", "Location", "Temperature", "Limit", "Duration", "Status"], [
+    { Warning: "CC-2026-0031", SKU: "RG-TRP-100", Lot: "LOT-TI-2604", Location: "Cold Store CS-02", Temperature: "7.8 C", Limit: "2-8 C", Duration: "18 min", Status: "Within limit" },
+    { Warning: "CC-2026-0028", SKU: "RG-GLU-050", Lot: "LOT-GL-2511", Location: "Cold Store CS-01", Temperature: "9.4 C", Limit: "2-8 C", Duration: "42 min", Status: "Escalated" }
+  ]),
+  "inventory.Recall Traceability": view(["Trace", "Recall", "SKU", "Lot", "Customer / Location", "Quantity", "Action", "Status"], [
+    { Trace: "TRACE-2026-0007A", Recall: "REC-2026-00007", SKU: "RG-TRP-100", Lot: "LOT-TI-2604", "Customer / Location": "Sidra Medicine", Quantity: "4", Action: "Customer notification", Status: "Open" },
+    { Trace: "TRACE-2026-0007B", Recall: "REC-2026-00007", SKU: "RG-TRP-100", Lot: "LOT-TI-2604", "Customer / Location": "Cold Store", Quantity: "30", Action: "Inventory block", Status: "Blocked" }
+  ]),
+  "inventory.Warehouse Productivity": view(["Metric", "Area", "Period", "Value", "Target", "Owner", "Action", "Status"], [
+    { Metric: "Putaway cycle time", Area: "Receiving", Period: "June 2026", Value: "3.2 hrs", Target: "<4 hrs", Owner: "Warehouse Manager", Action: "Maintain", Status: "On track" },
+    { Metric: "Pick accuracy", Area: "Dispatch", Period: "June 2026", Value: "98.6%", Target: "99%", Owner: "Warehouse Manager", Action: "Review backorder picks", Status: "Watch" }
+  ]),
+
+  "finance.Budget Control": view(["Control", "Department", "Budget", "Committed", "Actual", "Available", "Threshold", "Status"], [
+    { Control: "BUD-CTRL-2026-SRV", Department: "Service", Budget: "QAR 920,000", Committed: "QAR 218,000", Actual: "QAR 612,000", Available: "QAR 90,000", Threshold: "90%", Status: "Warning" },
+    { Control: "BUD-CTRL-2026-SAL", Department: "Sales", Budget: "QAR 1,200,000", Committed: "QAR 240,000", Actual: "QAR 710,000", Available: "QAR 250,000", Threshold: "90%", Status: "Open" }
+  ]),
+  "finance.Budget vs Actual": view(["Report", "BU", "Period", "Budget", "Actual", "Variance", "Owner", "Status"], [
+    { Report: "BVA-2026-06-DIAG", BU: "Diagnostics", Period: "June 2026", Budget: "QAR 680,000", Actual: "QAR 724,000", Variance: "+QAR 44,000", Owner: "Finance Manager", Status: "Over budget" },
+    { Report: "BVA-2026-06-EQP", BU: "Medical Equipment", Period: "June 2026", Budget: "QAR 940,000", Actual: "QAR 812,000", Variance: "-QAR 128,000", Owner: "Finance Manager", Status: "Within budget" }
+  ]),
+  "finance.Closing Checklist": view(["Checklist", "Period", "Task", "Owner", "Due Date", "Evidence", "Status"], [
+    { Checklist: "CLOSE-2026-06-01", Period: "June 2026", Task: "AR subledger tie-out", Owner: "Aisha Rahman", "Due Date": "2026-07-02", Evidence: "Draft report", Status: "In progress" },
+    { Checklist: "CLOSE-2026-06-02", Period: "June 2026", Task: "Inventory valuation review", Owner: "Finance Manager", "Due Date": "2026-07-03", Evidence: "Pending warehouse sign-off", Status: "Open" }
+  ]),
+  "finance.Period Close Lock": view(["Period", "Module", "Lock Date", "Locked By", "Open Exceptions", "Reopen Reason", "Status"], [
+    { Period: "May 2026", Module: "Finance", "Lock Date": "2026-06-05", "Locked By": "Finance Manager", "Open Exceptions": "0", "Reopen Reason": "", Status: "Locked" },
+    { Period: "June 2026", Module: "Inventory", "Lock Date": "2026-07-05", "Locked By": "", "Open Exceptions": "3", "Reopen Reason": "", Status: "Open" }
+  ]),
+  "finance.AR Collection Tracker": view(["Action", "Customer", "Invoice", "Amount", "Age", "Owner", "Next Step", "Status"], [
+    { Action: "AR-ACT-2026-0084", Customer: "Hamad Medical Corporation", Invoice: "INV-2026-00481", Amount: "QAR 184,500", Age: "44 days", Owner: "Credit Controller", "Next Step": "Call procurement", Status: "Due today" },
+    { Action: "AR-ACT-2026-0078", Customer: "The View Hospital", Invoice: "INV-2026-00472", Amount: "QAR 138,900", Age: "61 days", Owner: "Finance Manager", "Next Step": "Escalate hold", Status: "Overdue" }
+  ]),
+  "finance.AP Payment Planning": view(["Plan", "Supplier", "Bill", "Due Date", "Amount", "Priority", "Cash Impact", "Status"], [
+    { Plan: "APP-2026-0062", Supplier: "Siemens Healthineers", Bill: "BILL-2026-00341", "Due Date": "2026-07-18", Amount: "QAR 624,000", Priority: "High", "Cash Impact": "Forecasted", Status: "Planned" },
+    { Plan: "APP-2026-0059", Supplier: "Thermo Fisher", Bill: "BILL-2026-00338", "Due Date": "2026-07-15", Amount: "QAR 94,750", Priority: "Normal", "Cash Impact": "Within forecast", Status: "Open" }
+  ]),
+  "finance.Credit Control Alerts": view(["Alert", "Customer", "Exposure", "Limit", "Blocked Document", "Action", "Owner", "Status"], [
+    { Alert: "FCR-2026-0033", Customer: "Hamad Medical Corporation", Exposure: "QAR 1,184,500", Limit: "QAR 1,000,000", "Blocked Document": "QTN-2026-00314", Action: "Management override", Owner: "Finance Manager", Status: "Blocked" },
+    { Alert: "FCR-2026-0030", Customer: "Doha Clinic", Exposure: "QAR 174,600", Limit: "QAR 250,000", "Blocked Document": "", Action: "Monitor", Owner: "Credit Controller", Status: "Warning" }
+  ]),
+  "finance.Cash Forecast": view(["Forecast", "Week", "Opening Cash", "Inflows", "Outflows", "Closing Cash", "Risk", "Status"], [
+    { Forecast: "CF-2026-W27", Week: "2026-07-05", "Opening Cash": "QAR 2,860,000", Inflows: "QAR 420,000", Outflows: "QAR 718,750", "Closing Cash": "QAR 2,561,250", Risk: "Supplier payment peak", Status: "Watch" },
+    { Forecast: "CF-2026-W28", Week: "2026-07-12", "Opening Cash": "QAR 2,561,250", Inflows: "QAR 680,000", Outflows: "QAR 240,000", "Closing Cash": "QAR 3,001,250", Risk: "None", Status: "Healthy" }
+  ]),
+  "finance.VAT Validation": view(["Validation", "Document", "Party", "Taxable Amount", "VAT", "Rule", "Finding", "Status"], [
+    { Validation: "VAT-2026-0124", Document: "INV-2026-00481", Party: "Hamad Medical Corporation", "Taxable Amount": "QAR 184,500", VAT: "QAR 0", Rule: "Qatar local VAT placeholder", Finding: "No VAT expected", Status: "Passed" },
+    { Validation: "VAT-2026-0119", Document: "BILL-2026-00338", Party: "Thermo Fisher", "Taxable Amount": "QAR 94,750", VAT: "QAR 0", Rule: "Import duty check", Finding: "Attach customs packet", Status: "Action required" }
+  ]),
+  "finance.Journal Review Checklist": view(["Review", "Journal", "Period", "Debit", "Credit", "Reviewer", "Checklist", "Status"], [
+    { Review: "JRC-2026-0048", Journal: "JRN-2026-0092", Period: "June 2026", Debit: "QAR 184,500", Credit: "QAR 184,500", Reviewer: "Finance Manager", Checklist: "Balanced, source attached", Status: "Ready" },
+    { Review: "JRC-2026-0044", Journal: "PAY-JRN-2026-001", Period: "June 2026", Debit: "QAR 1,284,600", Credit: "QAR 1,284,600", Reviewer: "Aisha Rahman", Checklist: "Payroll variance pending", Status: "Review" }
+  ]),
+
+  "service.Engineer Skill Matrix": view(["Engineer", "Skill", "Level", "Certified Until", "Product Family", "Backup Engineer", "Training Need", "Status"], [
+    { Engineer: "Naveen Kumar", Skill: "Patient monitoring", Level: "Expert", "Certified Until": "2027-03-31", "Product Family": "MX series", "Backup Engineer": "S. Khan", "Training Need": "None", Status: "Certified" },
+    { Engineer: "A. Joseph", Skill: "Blood gas analyzers", Level: "Advanced", "Certified Until": "2026-08-15", "Product Family": "Diagnostics", "Backup Engineer": "Naveen Kumar", "Training Need": "Renewal", Status: "Expiring soon" }
+  ]),
+  "service.Repeat Failure Tracking": view(["Case", "Customer", "Equipment", "Serial", "Failures", "Last Failure", "Root Cause", "Status"], [
+    { Case: "RFT-2026-0018", Customer: "Sidra Medicine", Equipment: "Blood Gas Analyzer", Serial: "BGA-41288", Failures: "3 in 90 days", "Last Failure": "2026-06-18", "Root Cause": "Reagent line clogging", Status: "Engineering review" },
+    { Case: "RFT-2026-0014", Customer: "Hamad Medical Corporation", Equipment: "CT Injector System", Serial: "CTI-98422", Failures: "2 in 90 days", "Last Failure": "2026-06-20", "Root Cause": "Pressure sensor drift", Status: "Open" }
+  ]),
+  "service.SLA Breach Reasons": view(["Breach", "Job", "Customer", "SLA Due", "Closed At", "Reason", "Corrective Action", "Status"], [
+    { Breach: "SLA-BR-2026-0008", Job: "JOB-2026-0139", Customer: "Aman Hospital", "SLA Due": "2026-06-18 12:00", "Closed At": "2026-06-18 16:40", Reason: "Spare unavailable", "Corrective Action": "Min stock update", Status: "Closed" },
+    { Breach: "SLA-BR-2026-0007", Job: "JOB-2026-0142", Customer: "Hamad Medical Corporation", "SLA Due": "2026-06-20 14:30", "Closed At": "", Reason: "Customer access delayed", "Corrective Action": "Reschedule window", Status: "At risk" }
+  ]),
+  "service.Warranty Claims": view(["Claim", "Customer", "Equipment", "Supplier", "Part", "Claim Value", "Submitted", "Status"], [
+    { Claim: "WAR-CLM-2026-0024", Customer: "Doha Clinic", Equipment: "Centrifuge X4", Supplier: "Eppendorf", Part: "Rotor assembly", "Claim Value": "QAR 4,800", Submitted: "2026-06-19", Status: "Submitted" },
+    { Claim: "WAR-CLM-2026-0021", Customer: "Hamad Medical Corporation", Equipment: "CT Injector System", Supplier: "Siemens Healthineers", Part: "Pressure sensor", "Claim Value": "QAR 6,200", Submitted: "", Status: "Draft" }
+  ]),
+  "service.Service Profitability": view(["Record", "Customer", "Contract / Job", "Revenue", "Labor Cost", "Parts Cost", "Margin", "Status"], [
+    { Record: "SPF-2026-0038", Customer: "Sidra Medicine", "Contract / Job": "AMC-2026-0038", Revenue: "QAR 96,000", "Labor Cost": "QAR 28,000", "Parts Cost": "QAR 12,400", Margin: "57.9%", Status: "Profitable" },
+    { Record: "SPF-2026-0034", Customer: "Hamad Medical Corporation", "Contract / Job": "JOB-2026-0142", Revenue: "QAR 2,400", "Labor Cost": "QAR 1,100", "Parts Cost": "QAR 1,350", Margin: "-2.1%", Status: "Watch" }
+  ]),
+  "service.Spare Parts Consumption": view(["Consumption", "Job", "Engineer", "SKU", "Quantity", "Source", "Cost", "Status"], [
+    { Consumption: "SPC-2026-0064", Job: "JOB-2026-0142", Engineer: "Naveen Kumar", SKU: "SP-SPO2-A", Quantity: "1", Source: "Engineer stock", Cost: "QAR 1,350", Status: "Consumed" },
+    { Consumption: "SPC-2026-0060", Job: "JOB-2026-0139", Engineer: "A. Joseph", SKU: "RG-GLU-050", Quantity: "2", Source: "Warehouse", Cost: "QAR 620", Status: "Posted" }
+  ]),
+  "service.Equipment History": view(["Asset", "Customer", "Equipment", "Serial", "Install Date", "Jobs", "PM Compliance", "Status"], [
+    { Asset: "AST-00842", Customer: "Hamad Medical Corporation", Equipment: "CT Injector System", Serial: "CTI-98422", "Install Date": "2025-02-12", Jobs: "11", "PM Compliance": "94%", Status: "In service" },
+    { Asset: "AST-00791", Customer: "Sidra Medicine", Equipment: "Blood Gas Analyzer", Serial: "BGA-41288", "Install Date": "2024-11-08", Jobs: "18", "PM Compliance": "88%", Status: "Watch" }
+  ]),
+  "service.PM Compliance": view(["Schedule", "Customer", "Equipment", "Due", "Completed", "Compliance", "Engineer", "Status"], [
+    { Schedule: "PM-2026-00441", Customer: "Aman Hospital", Equipment: "Patient Monitor MX750", Due: "2026-06-21", Completed: "", Compliance: "Due", Engineer: "S. Khan", Status: "Scheduled" },
+    { Schedule: "PM-2026-00430", Customer: "Hamad Medical Corporation", Equipment: "CT Injector System", Due: "2026-06-18", Completed: "2026-06-18", Compliance: "On time", Engineer: "Naveen Kumar", Status: "Completed" }
+  ]),
+  "service.Engineer Productivity": view(["Engineer", "Period", "Jobs Closed", "First-Time Fix", "Utilization", "SLA Score", "Open Jobs", "Status"], [
+    { Engineer: "Naveen Kumar", Period: "June 2026", "Jobs Closed": "28", "First-Time Fix": "86%", Utilization: "78%", "SLA Score": "98.2%", "Open Jobs": "6", Status: "On track" },
+    { Engineer: "A. Joseph", Period: "June 2026", "Jobs Closed": "24", "First-Time Fix": "79%", Utilization: "82%", "SLA Score": "96.4%", "Open Jobs": "8", Status: "Watch" }
+  ]),
+  "service.Customer Satisfaction": view(["Survey", "Customer", "Job", "Score", "Comment", "Owner", "Follow-up", "Status"], [
+    { Survey: "CSAT-2026-0028", Customer: "Hamad Medical Corporation", Job: "JOB-2026-0142", Score: "4 / 5", Comment: "Fast response, awaiting final report", Owner: "Service Manager", "Follow-up": "Send report", Status: "Open" },
+    { Survey: "CSAT-2026-0024", Customer: "Sidra Medicine", Job: "JOB-2026-0138", Score: "5 / 5", Comment: "PM completed smoothly", Owner: "Service Coordinator", "Follow-up": "None", Status: "Closed" }
+  ]),
+
+  "projects.WBS": view(["WBS", "Project", "Level", "Work Package", "Owner", "Budget", "Progress", "Status"], [
+    { WBS: "WBS-PRJ-0019-1.1", Project: "National Reference Lab Expansion", Level: "1.1", "Work Package": "Lab readiness", Owner: "T. George", Budget: "QAR 1,200,000", Progress: "44%", Status: "At risk" },
+    { WBS: "WBS-PRJ-0018-2.1", Project: "Al Wakra Day Surgery Center", Level: "2.1", "Work Package": "Equipment delivery", Owner: "K. Varghese", Budget: "QAR 820,000", Progress: "82%", Status: "On track" }
+  ]),
+  "projects.Risk Log": view(["Risk", "Project", "Category", "Impact", "Probability", "Mitigation", "Owner", "Status"], [
+    { Risk: "RSK-2026-0019", Project: "National Reference Lab Expansion", Category: "Schedule", Impact: "High", Probability: "Medium", Mitigation: "Weekly client sign-off", Owner: "S. Rahman", Status: "Open" },
+    { Risk: "RSK-2026-0014", Project: "ICU Modernization - Phase II", Category: "Budget", Impact: "Medium", Probability: "High", Mitigation: "Freeze variation scope", Owner: "K. Varghese", Status: "Watch" }
+  ]),
+  "projects.Issue Log": view(["Issue", "Project", "Raised By", "Priority", "Due Date", "Resolution", "Owner", "Status"], [
+    { Issue: "ISS-2026-0048", Project: "National Reference Lab Expansion", "Raised By": "Client PMO", Priority: "High", "Due Date": "2026-07-03", Resolution: "Submit revised electrical load schedule", Owner: "T. George", Status: "Open" },
+    { Issue: "ISS-2026-0044", Project: "Al Wakra Day Surgery Center", "Raised By": "Site engineer", Priority: "Normal", "Due Date": "2026-07-06", Resolution: "Confirm ceiling clearance", Owner: "K. Varghese", Status: "In progress" }
+  ]),
+  "projects.Change Orders": view(["Change Order", "Project", "Customer", "Value", "Reason", "Approval", "Invoice Impact", "Status"], [
+    { "Change Order": "CO-2026-0018", Project: "National Reference Lab Expansion", Customer: "Ministry of Public Health", Value: "QAR 420,000", Reason: "Additional cold room", Approval: "Client review", "Invoice Impact": "Progress invoice", Status: "Submitted" },
+    { "Change Order": "CO-2026-0014", Project: "ICU Modernization - Phase II", Customer: "Hamad Medical Corporation", Value: "QAR 86,000", Reason: "Monitor arm change", Approval: "Approved", "Invoice Impact": "Next milestone", Status: "Approved" }
+  ]),
+  "projects.Budget vs Actual": view(["Project", "Budget", "Actual", "Committed", "Variance", "Margin", "Owner", "Status"], [
+    { Project: "National Reference Lab Expansion", Budget: "QAR 4,812,000", Actual: "QAR 3,800,000", Committed: "QAR 4,900,000", Variance: "-QAR 88,000", Margin: "38.7%", Owner: "S. Rahman", Status: "Watch" },
+    { Project: "Al Wakra Day Surgery Center", Budget: "QAR 3,724,800", Actual: "QAR 3,100,000", Committed: "QAR 3,400,000", Variance: "QAR 324,800", Margin: "35.4%", Owner: "K. Varghese", Status: "On track" }
+  ]),
+  "projects.Milestone Sign-Off": view(["Sign-Off", "Project", "Milestone", "Customer Contact", "Submitted", "Signed", "Invoice Trigger", "Status"], [
+    { "Sign-Off": "MSO-2026-0025", Project: "National Reference Lab Expansion", Milestone: "Lab commissioning", "Customer Contact": "Client PMO", Submitted: "2026-06-28", Signed: "", "Invoice Trigger": "20%", Status: "Pending" },
+    { "Sign-Off": "MSO-2026-0024", Project: "Al Wakra Day Surgery Center", Milestone: "Equipment delivery", "Customer Contact": "Operations director", Submitted: "2026-07-05", Signed: "", "Invoice Trigger": "50%", Status: "Draft" }
+  ]),
+  "projects.Retention Tracker": view(["Retention", "Project", "Invoice", "Amount", "Release Date", "Condition", "Owner", "Status"], [
+    { Retention: "RET-2026-0011", Project: "Al Wakra Day Surgery Center", Invoice: "PBI-DRAFT-2026-0012", Amount: "QAR 120,000", "Release Date": "2026-12-30", Condition: "Final acceptance", Owner: "Finance", Status: "Tracked" },
+    { Retention: "RET-2026-0009", Project: "ICU Modernization - Phase II", Invoice: "INV-2026-00388", Amount: "QAR 86,000", "Release Date": "2026-08-15", Condition: "Warranty letter", Owner: "Projects", Status: "Due soon" }
+  ]),
+  "projects.Invoice Tracker": view(["Invoice Plan", "Project", "Type", "Milestone", "Amount", "Draft Invoice", "Finance Status", "Status"], [
+    { "Invoice Plan": "PINV-2026-0044", Project: "National Reference Lab Expansion", Type: "Progress", Milestone: "Lab commissioning", Amount: "QAR 1,240,000", "Draft Invoice": "", "Finance Status": "Not drafted", Status: "Pending sign-off" },
+    { "Invoice Plan": "PINV-2026-0040", Project: "Al Wakra Day Surgery Center", Type: "Advance", Milestone: "Mobilization", Amount: "QAR 960,000", "Draft Invoice": "INV-DRAFT-2026-0040", "Finance Status": "Drafted", Status: "Ready" }
+  ]),
+  "projects.Closure Checklist": view(["Checklist", "Project", "Deliverables", "Documents", "Finance", "Lessons Learned", "Owner", "Status"], [
+    { Checklist: "PCL-2026-0014", Project: "ICU Modernization - Phase II", Deliverables: "Complete", Documents: "Pending final pack", Finance: "Retention open", "Lessons Learned": "Drafted", Owner: "K. Varghese", Status: "In progress" },
+    { Checklist: "PCL-2026-0010", Project: "Dental Center Fit-out", Deliverables: "Complete", Documents: "Complete", Finance: "Closed", "Lessons Learned": "Approved", Owner: "T. George", Status: "Closed" }
+  ]),
+  "projects.Profitability Dashboard": view(["Metric", "Project", "Contract Value", "Actual Cost", "Committed", "Forecast Margin", "Owner", "Status"], [
+    { Metric: "Forecast margin", Project: "National Reference Lab Expansion", "Contract Value": "QAR 6,200,000", "Actual Cost": "QAR 3,800,000", Committed: "QAR 4,900,000", "Forecast Margin": "21.0%", Owner: "S. Rahman", Status: "Watch" },
+    { Metric: "Forecast margin", Project: "Al Wakra Day Surgery Center", "Contract Value": "QAR 4,800,000", "Actual Cost": "QAR 3,100,000", Committed: "QAR 3,400,000", "Forecast Margin": "29.2%", Owner: "K. Varghese", Status: "Healthy" }
+  ]),
+
+  "shipping.Delivery Planning": view(["Plan", "Customer", "Sales Order", "Delivery Date", "Route", "Vehicle", "Cold Chain", "Status"], [
+    { Plan: "DPL-2026-0084", Customer: "Hamad Medical Corporation", "Sales Order": "SO-2026-00218", "Delivery Date": "2026-07-02", Route: "Doha North", Vehicle: "MT Fleet 02", "Cold Chain": "No", Status: "Planned" },
+    { Plan: "DPL-2026-0081", Customer: "Sidra Medicine", "Sales Order": "SO-2026-00211", "Delivery Date": "2026-07-03", Route: "Education City", Vehicle: "Cold van 01", "Cold Chain": "Yes", Status: "Cold-chain check" }
+  ]),
+  "shipping.Warehouse Handoff": view(["Handoff", "Pick Wave", "Sales Order", "Packages", "Warehouse Status", "Shipping Owner", "Received At", "Status"], [
+    { Handoff: "WHO-2026-0042", "Pick Wave": "WAV-2026-0042", "Sales Order": "SO-2026-00218", Packages: "12", "Warehouse Status": "Picked", "Shipping Owner": "Dispatch Team", "Received At": "2026-07-01 10:30", Status: "Received" },
+    { Handoff: "WHO-2026-0039", "Pick Wave": "WAV-2026-0039", "Sales Order": "SO-2026-00214", Packages: "4", "Warehouse Status": "Partial", "Shipping Owner": "Dispatch Team", "Received At": "", Status: "Pending" }
+  ]),
+  "shipping.Backorder Tracking": view(["Backorder", "Sales Order", "Customer", "SKU", "Short Qty", "Expected Receipt", "Customer Update", "Status"], [
+    { Backorder: "BO-2026-0018", "Sales Order": "SO-2026-00214", Customer: "Al Ahli Hospital", SKU: "EQ-PM-0750", "Short Qty": "1", "Expected Receipt": "2026-07-14", "Customer Update": "Notified", Status: "Open" },
+    { Backorder: "BO-2026-0014", "Sales Order": "SO-2026-00209", Customer: "Aman Hospital", SKU: "SP-SPO2-A", "Short Qty": "2", "Expected Receipt": "2026-07-08", "Customer Update": "Pending", Status: "Action required" }
+  ]),
+  "shipping.Delivery Exception Log": view(["Exception", "Delivery", "Customer", "Reason", "Logged At", "Owner", "Corrective Action", "Status"], [
+    { Exception: "DEX-2026-0024", Delivery: "DN-2026-00281", Customer: "Hamad Medical Corporation", Reason: "Security gate hold", "Logged At": "2026-07-01 12:15", Owner: "Dispatch Team", "Corrective Action": "Update vehicle pass", Status: "Open" },
+    { Exception: "DEX-2026-0021", Delivery: "DN-2026-00278", Customer: "Sidra Medicine", Reason: "Customer requested partial receipt", "Logged At": "2026-06-29 15:00", Owner: "Shipping Lead", "Corrective Action": "Create backorder", Status: "Closed" }
+  ]),
+  "shipping.Customs Packet": view(["Packet", "Shipment", "Supplier", "Documents", "Broker", "ETA", "Exception", "Status"], [
+    { Packet: "CUS-2026-0048", Shipment: "SHP-2026-0177", Supplier: "Thermo Fisher", Documents: "Invoice, packing list, CoA", Broker: "GWC Clearance", ETA: "2026-07-03", Exception: "Duty code review", Status: "Customs hold" },
+    { Packet: "CUS-2026-0044", Shipment: "SHP-2026-0184", Supplier: "Siemens Healthineers", Documents: "Invoice, COO, airway bill", Broker: "DHL Global", ETA: "2026-07-04", Exception: "None", Status: "Ready" }
+  ]),
+  "shipping.Cold Chain Delivery Warnings": view(["Warning", "Delivery", "Customer", "Temperature", "Limit", "Duration", "Logger", "Status"], [
+    { Warning: "CCD-2026-0018", Delivery: "DN-2026-00282", Customer: "Sidra Medicine", Temperature: "7.6 C", Limit: "2-8 C", Duration: "34 min", Logger: "TEMP-0192", Status: "Within limit" },
+    { Warning: "CCD-2026-0015", Delivery: "DN-2026-00277", Customer: "Doha Clinic", Temperature: "9.2 C", Limit: "2-8 C", Duration: "22 min", Logger: "TEMP-0188", Status: "QA review" }
+  ]),
+  "shipping.Driver Assignment": view(["Assignment", "Delivery", "Driver / Handler", "Vehicle", "Route", "Start Time", "POD Required", "Status"], [
+    { Assignment: "DRV-2026-0064", Delivery: "DN-2026-00281", "Driver / Handler": "MedTech Fleet Placeholder", Vehicle: "MT Fleet 02", Route: "Doha North", "Start Time": "2026-07-02 08:30", "POD Required": "Yes", Status: "Assigned" },
+    { Assignment: "DRV-2026-0061", Delivery: "DN-2026-00282", "Driver / Handler": "Cold-chain handler placeholder", Vehicle: "Cold van 01", Route: "Education City", "Start Time": "2026-07-03 09:00", "POD Required": "Yes", Status: "Pending" }
+  ]),
+  "shipping.Delivery Performance Dashboard": view(["Metric", "Period", "Value", "Target", "Owner", "Trend", "Action", "Status"], [
+    { Metric: "On-time delivery", Period: "June 2026", Value: "93%", Target: "95%", Owner: "Shipping Lead", Trend: "-2%", Action: "Route review", Status: "Watch" },
+    { Metric: "POD completion", Period: "June 2026", Value: "98%", Target: "98%", Owner: "Dispatch Team", Trend: "+1%", Action: "Maintain", Status: "On track" }
+  ]),
+
+  "quality.Product Complaint Workflow": view(["Complaint", "Customer", "Product", "Lot / Serial", "Severity", "Investigator", "CAPA Link", "Status"], [
+    { Complaint: "CMP-2026-00032", Customer: "Sidra Medicine", Product: "Patient Monitor MX750", "Lot / Serial": "SN-MX750-88421", Severity: "Major", Investigator: "Quality Manager", "CAPA Link": "CAPA-2026-0012", Status: "Investigation open" },
+    { Complaint: "CMP-2026-00028", Customer: "Doha Clinic", Product: "Troponin I Reagent Kit", "Lot / Serial": "LOT-TI-2604", Severity: "Minor", Investigator: "QA Specialist", "CAPA Link": "", Status: "Closed" }
+  ]),
+  "quality.Batch Recall Workflow": view(["Recall", "Product", "Lot", "Scope", "Customers", "Regulatory Notice", "Owner", "Status"], [
+    { Recall: "REC-2026-00007", Product: "Troponin I Reagent Kit", Lot: "LOT-TI-2604", Scope: "Selected customers", Customers: "2", "Regulatory Notice": "Draft", Owner: "Regulatory Affairs", Status: "Draft" },
+    { Recall: "REC-2026-00004", Product: "Glucose Reagent", Lot: "LOT-GL-2511", Scope: "Warehouse only", Customers: "0", "Regulatory Notice": "Not required", Owner: "Quality Manager", Status: "Closed" }
+  ]),
+  "quality.Regulatory Certificate Expiry": view(["Certificate", "Product / Supplier", "Authority", "Expiry Date", "Days Left", "Owner", "Renewal Action", "Status"], [
+    { Certificate: "QAR-CERT-MX750", "Product / Supplier": "Patient Monitor MX750", Authority: "MOPH", "Expiry Date": "2026-08-30", "Days Left": "60", Owner: "Regulatory Affairs", "Renewal Action": "Submit renewal pack", Status: "Open" },
+    { Certificate: "ISO-13485-SIE", "Product / Supplier": "Siemens Healthineers", Authority: "ISO", "Expiry Date": "2026-12-31", "Days Left": "183", Owner: "Quality Team", "Renewal Action": "Monitor", Status: "Active" }
+  ]),
+  "quality.Product Registration Tracker": view(["Registration", "Product", "Authority", "Submission", "Expected Approval", "Owner", "Documents", "Status"], [
+    { Registration: "REG-2026-0048", Product: "Patient Monitor MX750", Authority: "MOPH", Submission: "2026-06-12", "Expected Approval": "2026-08-15", Owner: "Regulatory Affairs", Documents: "Complete", Status: "Submitted" },
+    { Registration: "REG-2026-0044", Product: "New reagent panel", Authority: "MOPH", Submission: "", "Expected Approval": "2026-09-30", Owner: "Product Manager", Documents: "Pending CoA", Status: "Draft" }
+  ]),
+  "quality.Calibration Tracker": view(["Calibration", "Equipment", "Location", "Due Date", "Provider", "Certificate", "Owner", "Status"], [
+    { Calibration: "CAL-2026-0068", Equipment: "Cold room sensor CS-02", Location: "Cold Store", "Due Date": "2026-07-15", Provider: "Local calibration lab", Certificate: "Pending", Owner: "QA Specialist", Status: "Due soon" },
+    { Calibration: "CAL-2026-0062", Equipment: "QC weighing scale", Location: "Quality Lab", "Due Date": "2026-08-30", Provider: "Local calibration lab", Certificate: "Uploaded", Owner: "Quality Team", Status: "Active" }
+  ]),
+  "quality.Supplier Quality Rating": view(["Rating", "Supplier", "Period", "Defects", "CAPAs", "Score", "Owner", "Status"], [
+    { Rating: "SQR-2026-BD", Supplier: "BD Biosciences", Period: "Q2 2026", Defects: "3", CAPAs: "1", Score: "86%", Owner: "Quality Manager", Status: "Watch" },
+    { Rating: "SQR-2026-SIE", Supplier: "Siemens Healthineers", Period: "Q2 2026", Defects: "1", CAPAs: "0", Score: "96%", Owner: "Quality Manager", Status: "Approved" }
+  ]),
+  "quality.QC Checklist": view(["Checklist", "GRN / Batch", "Product", "Checks", "Passed", "Inspector", "Evidence", "Status"], [
+    { Checklist: "QCCHK-2026-0048", "GRN / Batch": "GRN-2026-0094", Product: "Troponin I Reagent Kit", Checks: "CoA, temp logger, expiry", Passed: "2 / 3", Inspector: "QA Specialist", Evidence: "Temp logger pending", Status: "Inspection pending" },
+    { Checklist: "QCCHK-2026-0044", "GRN / Batch": "GRN-2026-0098", Product: "Nitrile Gloves", Checks: "Visual, quantity, CoA", Passed: "3 / 3", Inspector: "Quality Team", Evidence: "Attached", Status: "Passed" }
+  ]),
+  "quality.Non-Conformance Log": view(["NCR", "Source", "Product", "Description", "Severity", "Disposition", "Owner", "Status"], [
+    { NCR: "NCR-2026-0024", Source: "Goods receipt", Product: "Troponin I Reagent Kit", Description: "Temperature logger gap", Severity: "Major", Disposition: "Hold lot", Owner: "Quality Manager", Status: "Open" },
+    { NCR: "NCR-2026-0021", Source: "Warehouse", Product: "Nitrile Gloves", Description: "Carton damage", Severity: "Minor", Disposition: "Accept after inspection", Owner: "QA Specialist", Status: "Closed" }
+  ]),
+  "quality.Quality Dashboard": view(["Metric", "Period", "Value", "Target", "Owner", "Trend", "Action", "Status"], [
+    { Metric: "Open CAPAs", Period: "June 2026", Value: "4", Target: "<=3", Owner: "Quality Manager", Trend: "+1", Action: "Weekly review", Status: "Watch" },
+    { Metric: "QC pass rate", Period: "June 2026", Value: "96.2%", Target: "95%", Owner: "Quality Team", Trend: "+0.8%", Action: "Maintain", Status: "On track" }
+  ]),
+
+  "documents.Document Version History": view(["Document", "Version", "Owner", "Changed By", "Changed At", "Change Summary", "Approval", "Status"], [
+    { Document: "HMC Framework Agreement.pdf", Version: "4.0", Owner: "Legal", "Changed By": "Commercial Director", "Changed At": "2026-06-12", "Change Summary": "Validity and discount schedule", Approval: "Approved", Status: "Current" },
+    { Document: "MX750 Product Datasheet.pdf", Version: "6.1", Owner: "Product Team", "Changed By": "Product Manager", "Changed At": "2026-06-17", "Change Summary": "Updated specification table", Approval: "Approved", Status: "Current" }
+  ]),
+  "documents.Attachment Metadata": view(["Attachment", "Source Module", "Source Record", "File Type", "Size", "Uploaded By", "Tags", "Status"], [
+    { Attachment: "Thermo Fisher Quality Agreement.pdf", "Source Module": "Procurement", "Source Record": "AGR-2026-THERMO", "File Type": "PDF", Size: "1.8 MB", "Uploaded By": "M. Said", Tags: "supplier,quality", Status: "Active" },
+    { Attachment: "QID_MT0041.pdf", "Source Module": "HR", "Source Record": "MT-0041", "File Type": "PDF", Size: "420 KB", "Uploaded By": "HR Officer", Tags: "employee,qid", Status: "Restricted" }
+  ]),
+  "documents.Contract Certificate Expiry": view(["Document", "Category", "Related To", "Expiry Date", "Days Left", "Owner", "Renewal Action", "Status"], [
+    { Document: "Thermo Fisher Quality Agreement.pdf", Category: "Agreement", "Related To": "Thermo Fisher", "Expiry Date": "2026-07-28", "Days Left": "27", Owner: "Procurement", "Renewal Action": "Legal review", Status: "Urgent" },
+    { Document: "QAR-CERT-MX750.pdf", Category: "Regulatory certificate", "Related To": "Patient Monitor MX750", "Expiry Date": "2026-08-30", "Days Left": "60", Owner: "Regulatory Affairs", "Renewal Action": "Renewal pack", Status: "Open" }
+  ]),
+  "documents.Approval Signature Trail": view(["Trail", "Document", "Approver", "Step", "Decision", "Signed At", "Signature Type", "Status"], [
+    { Trail: "SIG-2026-0048", Document: "HMC Framework Agreement.pdf", Approver: "Commercial Director", Step: "Commercial approval", Decision: "Approved", "Signed At": "2026-06-12 11:20", "Signature Type": "Local demo signature", Status: "Complete" },
+    { Trail: "SIG-2026-0044", Document: "QAR-CERT-MX750.pdf", Approver: "Regulatory Manager", Step: "Renewal approval", Decision: "Pending", "Signed At": "", "Signature Type": "Local demo signature", Status: "Pending" }
+  ]),
+  "documents.Document Lifecycle": view(["Document", "Lifecycle Stage", "Owner", "Source", "Effective Date", "Next Review", "Archive Rule", "Status"], [
+    { Document: "HMC Framework Agreement.pdf", "Lifecycle Stage": "Published", Owner: "Legal", Source: "Sales", "Effective Date": "2026-06-12", "Next Review": "2026-12-12", "Archive Rule": "After expiry + 7 years", Status: "Active" },
+    { Document: "Service Report JOB-2026-0142.pdf", "Lifecycle Stage": "Draft", Owner: "Service", Source: "Service", "Effective Date": "", "Next Review": "2026-07-02", "Archive Rule": "After job close", Status: "Draft" }
+  ]),
+  "documents.Document Owners": view(["Owner", "Department", "Document Class", "Records", "Expiring Soon", "Backup Owner", "Review Cadence", "Status"], [
+    { Owner: "Quality Manager", Department: "Quality", "Document Class": "Certificates and CAPA", Records: "84", "Expiring Soon": "6", "Backup Owner": "Regulatory Affairs", "Review Cadence": "Monthly", Status: "Active" },
+    { Owner: "HR Manager", Department: "Human Resources", "Document Class": "Employee restricted", Records: "420", "Expiring Soon": "5", "Backup Owner": "HR Officer", "Review Cadence": "Weekly", Status: "Active" }
+  ]),
+  "documents.Source Record Links": view(["Link", "Document", "Source Module", "Source Record", "Relationship", "Owner", "Last Checked", "Status"], [
+    { Link: "DLINK-2026-0088", Document: "Purchase Order PDF", "Source Module": "Procurement", "Source Record": "PO-2026-0128", Relationship: "Generated output", Owner: "M. Said", "Last Checked": "2026-06-20", Status: "Linked" },
+    { Link: "DLINK-2026-0084", Document: "Service Report PDF", "Source Module": "Service", "Source Record": "JOB-2026-0142", Relationship: "Generated output", Owner: "Naveen Kumar", "Last Checked": "2026-06-20", Status: "Draft" }
+  ]),
+  "documents.Generated PDF History": view(["PDF", "Document No", "Source Module", "Source Record", "Generated By", "Generated At", "Template", "Status"], [
+    { PDF: "PO-2026-0128.pdf", "Document No": "PO-2026-0128", "Source Module": "Procurement", "Source Record": "PO-2026-0128", "Generated By": "M. Said", "Generated At": "2026-06-20 10:15", Template: "Purchase Order", Status: "Generated" },
+    { PDF: "SRV-RPT-2026-0142.pdf", "Document No": "SRV-RPT-2026-0142", "Source Module": "Service", "Source Record": "JOB-2026-0142", "Generated By": "Naveen Kumar", "Generated At": "Not generated", Template: "Service Report", Status: "Draft" }
+  ]),
+  "documents.Print Views": view(["Print View", "Document", "Layout", "Watermark", "Prepared By", "Last Preview", "Action", "Status"], [
+    { "Print View": "PRN-2026-0048", Document: "HMC Framework Agreement.pdf", Layout: "Contract pack", Watermark: "Controlled copy", "Prepared By": "Legal", "Last Preview": "2026-06-12", Action: "Preview PDF", Status: "Ready" },
+    { "Print View": "PRN-2026-0044", Document: "Service Report JOB-2026-0142.pdf", Layout: "Service report", Watermark: "Draft", "Prepared By": "Service", "Last Preview": "", Action: "Generate first", Status: "Draft" }
+  ]),
+
+  "admin.Role Permission Matrix": view(["Role", "Module", "Create", "Approve", "Export", "Sensitive Access", "Owner", "Status"], [
+    { Role: "Finance Manager", Module: "Finance", Create: "Yes", Approve: "Yes", Export: "Yes", "Sensitive Access": "Journals, payroll summaries", Owner: "Super Admin", Status: "Active" },
+    { Role: "Read-only Auditor", Module: "All", Create: "No", Approve: "No", Export: "Yes", "Sensitive Access": "Masked HR documents", Owner: "Super Admin", Status: "Available" }
+  ]),
+  "admin.SoD Warnings": view(["Warning", "User", "Conflict", "Modules", "Risk", "Mitigation", "Owner", "Status"], [
+    { Warning: "SOD-2026-0012", User: "Aisha Rahman", Conflict: "Vendor bill create and approve", Modules: "Finance", Risk: "Medium", Mitigation: "Second approval over QAR 50k", Owner: "Super Admin", Status: "Open" },
+    { Warning: "SOD-2026-0008", User: "Fahad Al-Kuwari", Conflict: "Quotation owner and discount approver", Modules: "Sales", Risk: "High", Mitigation: "Management approval required", Owner: "Sales Operations", Status: "Controlled" }
+  ]),
+  "admin.Audit Viewer": view(["Audit", "Module", "Action", "Record", "User", "Timestamp", "Details", "Status"], [
+    { Audit: "AUD-2026-0418", Module: "Sales", Action: "CREATE", Record: "QTN-2026-00314", User: "F. Al-Kuwari", Timestamp: "2026-07-01 09:10", Details: "Quotation draft created locally", Status: "Logged" },
+    { Audit: "AUD-2026-0414", Module: "Finance", Action: "PDF", Record: "Management report", User: "Aisha Rahman", Timestamp: "2026-07-01 08:45", Details: "Local PDF generated", Status: "Logged" }
+  ]),
+  "admin.Local Backup Restore": view(["Backup", "Scope", "Created By", "Created At", "Records", "Restore Target", "Validation", "Status"], [
+    { Backup: "BKP-LOCAL-2026-0701", Scope: "All demo modules", "Created By": "Super Admin", "Created At": "2026-07-01 08:00", Records: "LocalStorage snapshot", "Restore Target": "Local browser only", Validation: "Checksum stored", Status: "Ready" },
+    { Backup: "BKP-HR-2026-0630", Scope: "HR linked modules", "Created By": "HR Manager", "Created At": "2026-06-30 17:00", Records: "No Employee Master changes", "Restore Target": "HR tabs only", Validation: "Passed", Status: "Archived" }
+  ]),
+  "admin.Module Data Reset": view(["Reset", "Module", "Records", "Requested By", "Approval", "Last Reset", "Impact", "Status"], [
+    { Reset: "RST-2026-SALES", Module: "Sales", Records: "Demo sales tabs", "Requested By": "Sales Operations", Approval: "Super Admin", "Last Reset": "2026-06-29", Impact: "LocalStorage only", Status: "Available" },
+    { Reset: "RST-2026-HR-LINKED", Module: "HR linked modules", Records: "Documents, approvals, reports", "Requested By": "HR Manager", Approval: "Super Admin", "Last Reset": "", Impact: "Employee Master excluded", Status: "Available" }
+  ]),
+  "admin.Change Log": view(["Change", "Area", "Summary", "Changed By", "Changed At", "Version", "Rollback", "Status"], [
+    { Change: "CHG-2026-0072", Area: "Expert layer tabs", Summary: "Added local expert workflow views", "Changed By": "Codex", "Changed At": "2026-07-01", Version: "Local demo", Rollback: "Reset module data", Status: "Active" },
+    { Change: "CHG-2026-0068", Area: "Automations", Summary: "Local trigger monitor enabled", "Changed By": "Admin", "Changed At": "2026-06-30", Version: "Local demo", Rollback: "Disable monitor", Status: "Active" }
+  ]),
+  "admin.Data Health Check": view(["Check", "Module", "Rule", "Records Checked", "Exceptions", "Owner", "Action", "Status"], [
+    { Check: "DHC-2026-0018", Module: "Sales", Rule: "Quotation must have costing before approval", "Records Checked": "14", Exceptions: "1", Owner: "Sales Operations", Action: "Fix draft quotation", Status: "Warning" },
+    { Check: "DHC-2026-0014", Module: "Inventory", Rule: "Expiry-controlled stock must have lot", "Records Checked": "64", Exceptions: "0", Owner: "Warehouse Manager", Action: "None", Status: "Passed" }
+  ]),
+  "admin.User Activity Summary": view(["User", "Department", "Last Active", "Creates", "Approvals", "Exports", "Risk Flag", "Status"], [
+    { User: "Fahad Al-Kuwari", Department: "Sales", "Last Active": "21 min ago", Creates: "8", Approvals: "2", Exports: "3", "Risk Flag": "Discount owner", Status: "Active" },
+    { User: "Aisha Rahman", Department: "Finance", "Last Active": "8 min ago", Creates: "5", Approvals: "7", Exports: "4", "Risk Flag": "None", Status: "Active" }
+  ]),
+  "admin.Read-only Auditor Mode": view(["Mode", "Scope", "Create", "Edit", "Approve", "Export", "Sensitive Fields", "Status"], [
+    { Mode: "Auditor - full company", Scope: "All modules", Create: "No", Edit: "No", Approve: "No", Export: "Yes", "Sensitive Fields": "Masked HR IDs and bank data", Status: "Available" },
+    { Mode: "Auditor - finance only", Scope: "Finance, Approvals, Documents", Create: "No", Edit: "No", Approve: "No", Export: "Yes", "Sensitive Fields": "Payroll detail hidden", Status: "Available" }
+  ])
+};
+
+Object.assign(medtechScopeViews, expertLayerViews);

@@ -9,13 +9,20 @@ export interface HrView {
   defaultValues?: Record<string, string>;
 }
 
-export const hrTabs = [
+const coreHrTabs = [
   "Dashboard", "Employees", "Departments", "Contracts",
   "Probation Reviews", "Access Provisioning", "Recruitment", "Attendance", "Attendance Exceptions", "Leave",
   "Business Trips", "Employee Expenses", "Payroll", "Loans & advances", "Performance/Appraisals", "eLearning",
   "EOS / Gratuity / Final Settlement", "Payroll Accounting Draft Journal", "Documents", "Approvals", "Reports",
   "Self service", "Settings"
 ] as const;
+
+export const hrExpertTabs = [
+  "Lifecycle Checklist", "HR Document Expiry", "Salary Revision Approval", "Training Matrix", "Competency Matrix",
+  "Manpower Plan", "Loan Control Dashboard", "Payroll Variance Report", "Qatar Labour Compliance", "Exit Checklist"
+] as const;
+
+export const hrTabs = [...coreHrTabs, ...hrExpertTabs] as const;
 export type HrTab = typeof hrTabs[number];
 
 const baseHrEmployees: Array<Record<string, string>> = [
@@ -177,6 +184,106 @@ export const hrViews: Record<Exclude<HrTab, "Dashboard">, HrView> = {
     { Request: "HR-APR-0184", Type: "Salary revision", "Employee / Position": "MT-0024 - Aisha Rahman", "Requested by": "Finance Manager", "Amount / Impact": "+QAR 1,200", Submitted: "Yesterday", Status: "HR review" },
     { Request: "HR-APR-0179", Type: "Payroll", "Employee / Position": "June 2026 run", "Requested by": "Payroll Manager", "Amount / Impact": "QAR 1.24M", Submitted: "18 Jun 2026", Status: "Management review" }
   ]},
+  "Lifecycle Checklist": {
+    primaryAction: "Add lifecycle checklist",
+    columns: ["Checklist", "Employee Code", "Employee Name", "Stage", "Owner", "Due Date", "Completed Items", "Status"],
+    rows: [
+      { Checklist: "LIFE-2026-0064", "Employee Code": "MT-0064", "Employee Name": "Leila D'Souza", Stage: "Onboarding", Owner: "HR Officer", "Due Date": "2026-07-05", "Completed Items": "8 / 10", Status: "In progress" },
+      { Checklist: "LIFE-2026-0072", "Employee Code": "MT-0072", "Employee Name": "Omar Nasser", Stage: "Role transfer", Owner: "HR Manager", "Due Date": "2026-07-12", "Completed Items": "4 / 9", Status: "Manager review" }
+    ],
+    selectOptions: { Stage: ["Onboarding", "Probation", "Transfer", "Promotion", "Exit"], Status: ["Draft", "In progress", "Manager review", "Completed", "Archived"] },
+    defaultValues: { Checklist: "Auto generated", Stage: "Onboarding", "Completed Items": "0 / 10", Status: "Draft" }
+  },
+  "HR Document Expiry": {
+    primaryAction: "Add document expiry",
+    columns: ["Tracker", "Employee Code", "Employee Name", "Document", "Expiry Date", "Days Left", "Owner", "Status"],
+    rows: [
+      { Tracker: "HRDOC-2026-0041", "Employee Code": "MT-0041", "Employee Name": "Naveen Kumar", Document: "Qatar ID", "Expiry Date": "2026-07-02", "Days Left": "1", Owner: "HR Officer", Status: "Urgent" },
+      { Tracker: "HRDOC-2026-0072", "Employee Code": "MT-0072", "Employee Name": "Omar Nasser", Document: "Passport", "Expiry Date": "2028-04-19", "Days Left": "657", Owner: "HR Officer", Status: "Active" }
+    ],
+    selectOptions: { Document: ["Qatar ID", "Passport", "Visa", "Contract", "Certification"], Status: ["Active", "Expiring soon", "Urgent", "Renewed", "Archived"] },
+    defaultValues: { Tracker: "Auto generated", Document: "Qatar ID", Status: "Active" }
+  },
+  "Salary Revision Approval": {
+    primaryAction: "Add salary revision",
+    columns: ["Revision", "Employee Code", "Employee Name", "Current Salary", "Proposed Salary", "Effective Date", "Approval Route", "Status"],
+    rows: [
+      { Revision: "SALREV-2026-0024", "Employee Code": "MT-0024", "Employee Name": "Aisha Rahman", "Current Salary": "QAR 17,500", "Proposed Salary": "QAR 18,700", "Effective Date": "2026-07-01", "Approval Route": "Finance Manager -> HR -> Management", Status: "HR review" },
+      { Revision: "SALREV-2026-0041", "Employee Code": "MT-0041", "Employee Name": "Naveen Kumar", "Current Salary": "QAR 15,200", "Proposed Salary": "QAR 16,000", "Effective Date": "2026-08-01", "Approval Route": "Service Manager -> HR", Status: "Draft" }
+    ],
+    selectOptions: { Status: ["Draft", "Submitted", "HR review", "Management review", "Approved", "Rejected"] },
+    defaultValues: { Revision: "Auto generated", Status: "Draft" }
+  },
+  "Training Matrix": {
+    primaryAction: "Add training need",
+    columns: ["Matrix", "Department", "Role", "Course", "Required", "Completed", "Gap", "Status"],
+    rows: [
+      { Matrix: "TRN-2026-SRV", Department: "Service", Role: "Biomedical Engineer", Course: "Biomedical safety refresher", Required: "24", Completed: "21", Gap: "3", Status: "Open" },
+      { Matrix: "TRN-2026-PROC", Department: "Procurement", Role: "Buyer", Course: "Procurement ethics", Required: "10", Completed: "10", Gap: "0", Status: "Complete" }
+    ],
+    selectOptions: { Status: ["Open", "In progress", "Complete", "Overdue"] },
+    defaultValues: { Matrix: "Auto generated", Status: "Open" }
+  },
+  "Competency Matrix": {
+    primaryAction: "Add competency record",
+    columns: ["Competency", "Employee Code", "Employee Name", "Role", "Skill", "Level", "Assessed By", "Status"],
+    rows: [
+      { Competency: "COMP-2026-0041", "Employee Code": "MT-0041", "Employee Name": "Naveen Kumar", Role: "Biomedical Engineer", Skill: "Patient monitoring", Level: "Expert", "Assessed By": "Service Manager", Status: "Certified" },
+      { Competency: "COMP-2026-0053", "Employee Code": "MT-0053", "Employee Name": "Mariam Said", Role: "Procurement Officer", Skill: "Landed cost analysis", Level: "Intermediate", "Assessed By": "Procurement Manager", Status: "Training needed" }
+    ],
+    selectOptions: { Level: ["Foundation", "Intermediate", "Advanced", "Expert"], Status: ["Certified", "Training needed", "Assessment due", "Expired"] },
+    defaultValues: { Competency: "Auto generated", Level: "Foundation", Status: "Assessment due" }
+  },
+  "Manpower Plan": {
+    primaryAction: "Add manpower plan",
+    columns: ["Plan", "Department", "Current HC", "Approved HC", "Open Vacancies", "Forecast Need", "Owner", "Status"],
+    rows: [
+      { Plan: "MP-2026-SRV", Department: "Service", "Current HC": "24", "Approved HC": "27", "Open Vacancies": "2", "Forecast Need": "3 engineers by Q4", Owner: "HR Manager", Status: "Hiring" },
+      { Plan: "MP-2026-WHS", Department: "Warehouse", "Current HC": "18", "Approved HC": "18", "Open Vacancies": "0", "Forecast Need": "Temp support for stock count", Owner: "Operations Manager", Status: "Planned" }
+    ],
+    selectOptions: { Status: ["Draft", "Planned", "Hiring", "On hold", "Closed"] },
+    defaultValues: { Plan: "Auto generated", Status: "Draft" }
+  },
+  "Loan Control Dashboard": {
+    primaryAction: "Add loan control",
+    columns: ["Control", "Employee Code", "Employee Name", "Original Amount", "Outstanding", "Installment", "Payroll Deduction", "Status"],
+    rows: [
+      { Control: "LOANCTRL-2026-0028", "Employee Code": "MT-0072", "Employee Name": "Omar Nasser", "Original Amount": "QAR 24,000", Outstanding: "QAR 14,000", Installment: "QAR 2,000", "Payroll Deduction": "June payroll", Status: "Active" },
+      { Control: "LOANCTRL-2026-0041", "Employee Code": "MT-0053", "Employee Name": "Mariam Said", "Original Amount": "QAR 6,000", Outstanding: "QAR 4,000", Installment: "QAR 2,000", "Payroll Deduction": "Pending approval", Status: "Approved" }
+    ],
+    selectOptions: { Status: ["Draft", "Approved", "Active", "Paused", "Settled", "Defaulted"] },
+    defaultValues: { Control: "Auto generated", Status: "Draft" }
+  },
+  "Payroll Variance Report": {
+    primaryAction: "Add payroll variance",
+    columns: ["Variance", "Payroll Run", "Employee Code", "Employee Name", "Previous Net", "Current Net", "Variance Amount", "Status"],
+    rows: [
+      { Variance: "PAYVAR-2026-0024", "Payroll Run": "PAY-2026-06", "Employee Code": "MT-0024", "Employee Name": "Aisha Rahman", "Previous Net": "QAR 17,500", "Current Net": "QAR 18,700", "Variance Amount": "+QAR 1,200", Status: "Explained" },
+      { Variance: "PAYVAR-2026-0072", "Payroll Run": "PAY-2026-06", "Employee Code": "MT-0072", "Employee Name": "Omar Nasser", "Previous Net": "QAR 11,900", "Current Net": "QAR 9,900", "Variance Amount": "-QAR 2,000", Status: "Loan deduction" }
+    ],
+    selectOptions: { Status: ["Unexplained", "Explained", "Loan deduction", "Salary revision", "Hold"] },
+    defaultValues: { Variance: "Auto generated", Status: "Unexplained" }
+  },
+  "Qatar Labour Compliance": {
+    primaryAction: "Add compliance check",
+    columns: ["Check", "Area", "Requirement", "Owner", "Evidence", "Due Date", "Risk", "Status"],
+    rows: [
+      { Check: "QLC-2026-0018", Area: "WPS", Requirement: "Salary transfer file before cutoff", Owner: "Payroll Manager", Evidence: "June WPS draft", "Due Date": "2026-07-03", Risk: "Medium", Status: "In progress" },
+      { Check: "QLC-2026-0014", Area: "Contract", Requirement: "Signed contract available for active employees", Owner: "HR Manager", Evidence: "Document center", "Due Date": "2026-07-10", Risk: "Low", Status: "Compliant" }
+    ],
+    selectOptions: { Area: ["WPS", "Contract", "Working hours", "Leave", "EOS", "Health card"], Risk: ["Low", "Medium", "High"], Status: ["Compliant", "In progress", "Exception", "Overdue"] },
+    defaultValues: { Check: "Auto generated", Area: "WPS", Risk: "Low", Status: "In progress" }
+  },
+  "Exit Checklist": {
+    primaryAction: "Add exit checklist",
+    columns: ["Exit", "Employee Code", "Employee Name", "Last Working Day", "Clearance", "EOS Draft", "Asset Return", "Status"],
+    rows: [
+      { Exit: "EXIT-2026-0024", "Employee Code": "MT-0024", "Employee Name": "Aisha Rahman", "Last Working Day": "2026-09-30", Clearance: "Finance pending", "EOS Draft": "EOS-2026-001", "Asset Return": "Not started", Status: "Open" },
+      { Exit: "EXIT-2026-0072", "Employee Code": "MT-0072", "Employee Name": "Omar Nasser", "Last Working Day": "2026-07-31", Clearance: "Warehouse pending", "EOS Draft": "EOS-2026-002", "Asset Return": "Laptop pending", Status: "HR review" }
+    ],
+    selectOptions: { Status: ["Draft", "Open", "HR review", "Finance review", "Cleared", "Closed"] },
+    defaultValues: { Exit: "Auto generated", Clearance: "Not started", "Asset Return": "Not started", Status: "Draft" }
+  },
   Reports: { primaryAction: "Build HR report", columns: ["Report", "Category", "Period", "Owner", "Format", "Last run", "Status"], rows: [
     { Report: "Employee directory", Category: "Employee", Period: "Current", Owner: "HR Team", Format: "PDF / Excel", "Last run": "Today, 08:45", Status: "Ready" },
     { Report: "Monthly attendance", Category: "Attendance", Period: "June 2026", Owner: "HR Team", Format: "Excel", "Last run": "Today, 09:30", Status: "Ready" },

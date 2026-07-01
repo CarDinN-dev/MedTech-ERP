@@ -5,6 +5,7 @@ import { salesWorkflowPathways, seedSalesWorkflows, workflowTotals, type SalesWo
 
 export type ReportDashboardId =
   | "executive"
+  | "management"
   | "pipeline"
   | "revenue-bu"
   | "margin"
@@ -69,6 +70,7 @@ type SnapshotReader = (key: string, seedRows: Array<Record<string, string>>) => 
 
 const dashboardTitles: Record<ReportDashboardId, [string, string, "bar" | "line" | "area" | "pie"]> = {
   executive: ["Executive Overview", "Board-level operating view across revenue, cash, stock, service and people.", "bar"],
+  management: ["Management Expert Layer", "Executive actions, approvals, risk, profitability, scorecards and decisions.", "bar"],
   pipeline: ["Sales Pipeline", "Opportunity value, stage mix and commercial velocity.", "bar"],
   "revenue-bu": ["Revenue by BU", "Revenue against local demo targets by business unit.", "bar"],
   margin: ["Gross Margin by BU / Customer / Product", "Gross profit and margin mix from sales workflow lines.", "bar"],
@@ -113,7 +115,8 @@ export function buildReportingModel(readSnapshot?: SnapshotReader, salesWorkflow
     ...financeRows(read),
     ...inventoryRows(read),
     ...serviceRows(read),
-    ...hrRows(read)
+    ...hrRows(read),
+    ...managementRows()
   ];
   return { rows, dashboards: dashboardsFor(rows), options: filterOptions(rows) };
 }
@@ -299,6 +302,22 @@ function hrRows(read: SnapshotReader): ReportRow[] {
   }));
 }
 
+function managementRows(): ReportRow[] {
+  return [
+    row("management", "Executive action center", "MGT-ACT-2026-001", { BU: "Management", Date: "2026-07-01", Customer: "Hamad Medical Corporation", Status: "Overdue", Amount: 184_500, Margin: 0, Value: 1, Days: 3, Notes: "Approve credit override before quotation release" }),
+    row("management", "Pending approvals by department", "MGT-APR-SALES", { BU: "Sales", Date: "2026-07-01", Status: "Pending", Amount: 286_000, Value: 4, Days: 1, Notes: "Quotation and discount approvals" }),
+    row("management", "Pending approvals by department", "MGT-APR-PROC", { BU: "Procurement", Date: "2026-07-01", Supplier: "Thermo Fisher", Status: "Finance review", Amount: 94_750, Value: 2, Days: 1, Notes: "PO and supplier agreement approvals" }),
+    row("management", "High-risk items", "MGT-RISK-001", { BU: "Inventory", Date: "2026-07-01", Product: "Troponin I Reagent Kit", Status: "High", Amount: 43_520, Value: 1, Days: 27, Notes: "Cold-chain and expiry watch" }),
+    row("management", "Overdue tasks", "MGT-OD-001", { BU: "Finance", Date: "2026-07-01", Customer: "The View Hospital", Status: "Overdue", Amount: 138_900, Value: 1, Days: 61, Notes: "AR collection escalation" }),
+    row("management", "BU profitability", "MGT-BU-DIAG", { BU: "Diagnostics", Date: "2026-06-30", Status: "Profitable", Amount: 2_600_000, Margin: 624_000, Value: 624_000, Notes: "Diagnostics YTD local demo margin" }),
+    row("management", "Customer profitability", "MGT-CUST-HMC", { BU: "Medical Equipment", Date: "2026-06-30", Customer: "Hamad Medical Corporation", Status: "Watch", Amount: 4_800_000, Margin: 816_000, Value: 816_000, Notes: "Credit exposure reduces risk score" }),
+    row("management", "Product profitability", "MGT-PROD-MX750", { BU: "Medical Equipment", Date: "2026-06-30", Product: "Patient Monitor MX750", "Product Category": "Equipment", Status: "Healthy", Amount: 1_240_000, Margin: 298_000, Value: 298_000, Notes: "Margin above floor" }),
+    row("management", "Department KPI scorecards", "MGT-KPI-SRV", { BU: "Service", Date: "2026-06-30", Engineer: "Naveen Kumar", Status: "On track", Amount: 1, Value: 96.8, Days: 2, Notes: "SLA compliance and PM closure" }),
+    row("management", "Risk register", "MGT-RR-001", { BU: "Projects", Date: "2026-07-01", Contract: "PRJ-2026-0019", Status: "Open", Amount: 6_200_000, Value: 1, Days: 14, Notes: "Milestone schedule and change order risk" }),
+    row("management", "Decision log", "MGT-DEC-001", { BU: "Executive", Date: "2026-07-01", Status: "Recorded", Amount: 0, Value: 1, Notes: "Management approved local demo auditor role and no external integrations" })
+  ];
+}
+
 function kpisFor(id: ReportDashboardId, own: ReportRow[], all: ReportRow[]): ReportKpi[] {
   const amount = sum(own, "Amount");
   const value = sum(own, "Value");
@@ -320,6 +339,12 @@ function kpisFor(id: ReportDashboardId, own: ReportRow[], all: ReportRow[]): Rep
       kpi("Gross margin", qar(margin), `${pct(margin, sum(marginRows, "Amount"))} margin`, "success", "Gross margin by BU/customer/product"),
       kpi("DSO", `${Math.round(weightedAverage(arRows, "Days", "Amount") || 47)} days`, "Receivables aging", "warning", "DSO"),
       kpi("Cash forecast", qar(sum(all.filter(row => row.Dashboard === "cash"), "Amount")), "90-day net position", "info", "Cash position and 90-day forecast")
+    ],
+    management: [
+      kpi("Executive action center", String(own.filter(row => row.KPI === "Executive action center").length), "Open local actions", "warning", "Executive action center"),
+      kpi("High-risk items", String(own.filter(row => row.KPI === "High-risk items").length), "Needs leadership attention", "danger", "High-risk items"),
+      kpi("BU profitability", qar(sum(own.filter(row => row.KPI === "BU profitability"), "Margin")), "Forecast margin", "success", "BU profitability"),
+      kpi("Decision log", String(own.filter(row => row.KPI === "Decision log").length), "Recorded decisions", "info", "Decision log")
     ],
     pipeline: [
       kpi("Open pipeline", qar(amount), `${count} local records`, "info", "Win/loss rate"),
@@ -409,6 +434,7 @@ function chartDataFor(id: ReportDashboardId, rows: ReportRow[]) {
     return rows.sort((a, b) => a.Date.localeCompare(b.Date)).map(row => ({ name: row.Date.slice(5), value: Math.round((running += row.Amount)), amount: row.Amount }));
   }
   if (id === "sla") return groupRows(rows, "Status", "Amount").map(item => ({ name: item.name, value: item.value }));
+  if (id === "management") return groupRows(rows, "KPI", "Value").map(item => ({ name: item.name, value: item.value }));
   if (["dso", "otc", "expiry"].includes(id)) return groupRows(rows, "Record", "Days").slice(0, 8).map(item => ({ name: item.name, value: item.value }));
   const key: keyof ReportRow = id === "coverage" ? "Salesperson" : id === "margin" ? "Customer" : id === "inventory-turns" ? "Product" : "BU";
   return groupRows(rows, key, id === "margin" ? "Margin" : "Amount").slice(0, 8).map(item => ({ name: item.name, value: item.value }));
@@ -496,7 +522,7 @@ function topGroup(rows: ReportRow[], key: keyof ReportRow, valueKey: "Amount" | 
   return groupRows(rows, key, valueKey)[0]?.name || "None";
 }
 
-function groupRows(rows: ReportRow[], key: keyof ReportRow, valueKey: "Amount" | "Margin" | "Days") {
+function groupRows(rows: ReportRow[], key: keyof ReportRow, valueKey: "Amount" | "Margin" | "Days" | "Value") {
   const groups = new Map<string, number>();
   rows.forEach(row => {
     const name = String(row[key] || "Unassigned");

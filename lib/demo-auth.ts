@@ -3,6 +3,7 @@
 export const DEMO_SESSION_KEY = "medtech-demo:session";
 export const DEMO_USERS_KEY = "medtech-demo:admin:Users:records:v2";
 export const DEMO_COOKIE = "medtech_demo_session";
+// Local demo credentials only. Do not reuse in production.
 export const DEFAULT_DEMO_EMAIL = "admin@medtech.qa";
 export const DEFAULT_DEMO_PASSWORD = "MedTech@2026";
 export const PRESENTATION_USER_NAME = "Kashif";
@@ -20,7 +21,7 @@ export function signInDemo(email: string, password: string): DemoSession {
   const name = user.User || email.split("@")[0];
   const session: DemoSession = { name, email: user.Email || email, role: user.Role || "Read-only Auditor", department: user.Department || "General", initials: initials(name) };
   localStorage.setItem(DEMO_SESSION_KEY, JSON.stringify(session));
-  document.cookie = `${DEMO_COOKIE}=active; Path=/; Max-Age=28800; SameSite=Lax`;
+  document.cookie = `${DEMO_COOKIE}=active; Path=/; Max-Age=28800; SameSite=Strict`;
   return session;
 }
 
@@ -29,6 +30,10 @@ export function getDemoSession(): DemoSession | null {
     const value = localStorage.getItem(DEMO_SESSION_KEY);
     if (!value) return null;
     const session = JSON.parse(value) as DemoSession;
+    if (!isSessionShape(session)) return null;
+    const user = getStoredUsers().find(item => item.Email?.toLowerCase() === session.email.toLowerCase());
+    if (!user || (user.Status || "Active").toLowerCase() !== "active") return null;
+    if ((user.Role || "Read-only Auditor") !== session.role || (user.Department || "General") !== session.department) return null;
     if (session.email.toLowerCase() === DEFAULT_DEMO_EMAIL && session.name !== PRESENTATION_USER_NAME) {
       const migrated = { ...session, name: PRESENTATION_USER_NAME, initials: initials(PRESENTATION_USER_NAME) };
       localStorage.setItem(DEMO_SESSION_KEY, JSON.stringify(migrated));
@@ -40,7 +45,7 @@ export function getDemoSession(): DemoSession | null {
 
 export function clearDemoSession() {
   localStorage.removeItem(DEMO_SESSION_KEY);
-  document.cookie = `${DEMO_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax`;
+  document.cookie = `${DEMO_COOKIE}=; Path=/; Max-Age=0; SameSite=Strict`;
 }
 
 function getStoredUsers(): StoredUser[] {
@@ -50,6 +55,12 @@ function getStoredUsers(): StoredUser[] {
     const migrated = users.map(user => user.Email?.toLowerCase() === DEFAULT_DEMO_EMAIL ? { ...user, User: PRESENTATION_USER_NAME } : user);
     return migrated.some(user => user.Email?.toLowerCase() === DEFAULT_DEMO_EMAIL) ? migrated : [defaultUser, ...migrated];
   } catch { return [defaultUser]; }
+}
+
+function isSessionShape(value: unknown): value is DemoSession {
+  if (!value || typeof value !== "object") return false;
+  const session = value as DemoSession;
+  return [session.name, session.email, session.role, session.department, session.initials].every(item => typeof item === "string" && item.trim().length > 0);
 }
 
 function initials(name: string) { return name.split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]?.toUpperCase()).join("") || "MT"; }

@@ -120,7 +120,6 @@ export interface PricingResult {
 export const PRICING_STORAGE_KEY = "medtech-demo:pricing-engine:v1";
 
 export function seedPricingState(): PricingState {
-  const today = "2026-06-20";
   return {
     pricelists: [
       {

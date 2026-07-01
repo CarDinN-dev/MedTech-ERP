@@ -117,7 +117,7 @@ export function createProjectFromPso(record: SalesWorkflowRecord, currentUser: s
 }
 
 function completeMilestones(records: DemoRecord[]) {
-  const updates = records.map(record => ({ "Completion %": "100", Status: "Completed" }));
+  const updates = records.map(() => ({ "Completion %": "100", Status: "Completed" }));
   return { sourceUpdates: updates, message: `${records.length} milestone${records.length === 1 ? "" : "s"} marked complete` };
 }
 

@@ -4,6 +4,7 @@ import { appendAuditLog } from "@/lib/audit-store";
 import { createDemoRecord, readDemoRecordsSnapshot, writeDemoRecordsSnapshot, type DemoRecord } from "@/lib/demo-store";
 import { medtechScopeViews } from "@/lib/medtech-scope-data";
 import { approvalRequired, hasApprovedApproval, money, submitApprovalRequest, type ApprovalSource } from "@/lib/approval-matrix";
+import { refreshLocalAlerts } from "@/lib/local-alerts";
 
 export type WorkflowAction = "submit" | "approve" | "reject" | "cancel";
 
@@ -75,8 +76,10 @@ export function runLocalDemoAutomations(currentUser: string) {
   const existing = readDemoRecordsSnapshot(moduleKey, seed);
   const next = upsert(existing, rows, ["Trigger Name", "Source Record"]).slice(0, 250);
   writeDemoRecordsSnapshot(moduleKey, next);
+  refreshLocalAlerts();
   appendAuditLog({ action: "AUTOMATION RUN", module: "Administration", record: "Automation Monitor", details: `${rows.length} local demo automation triggers evaluated locally` });
   window.dispatchEvent(new StorageEvent("storage", { key: moduleKey }));
+  window.dispatchEvent(new Event("medtech:alerts"));
   return rows;
 }
 

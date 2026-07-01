@@ -5,7 +5,7 @@ import {
   FileText, ReceiptText, Warehouse, ClipboardList, Truck, ShieldCheck, Inbox
 } from "lucide-react";
 
-export type ModuleKey = "finance" | "hr" | "sales" | "shipping" | "inventory" | "procurement" | "service" | "projects" | "documents" | "approvals" | "reports" | "admin";
+export type ModuleKey = "finance" | "hr" | "sales" | "shipping" | "inventory" | "procurement" | "quality" | "service" | "projects" | "documents" | "approvals" | "reports" | "admin";
 export interface NavItem { label: string; href: string; icon: LucideIcon; module?: ModuleKey; badge?: string; }
 export interface ModuleDefinition {
   key: ModuleKey; title: string; subtitle: string; icon: LucideIcon; color: string;
@@ -15,12 +15,13 @@ export interface ModuleDefinition {
 }
 
 export const navGroups: { label: string; items: NavItem[] }[] = [
-  { label: "OVERVIEW", items: [{ label: "Dashboard", href: "/", icon: LayoutDashboard }, { label: "My Work", href: "/my-work", icon: Inbox, badge: "New" }] },
+  { label: "OVERVIEW", items: [{ label: "Dashboard", href: "/", icon: LayoutDashboard }, { label: "My Work", href: "/my-work", icon: Inbox, badge: "New" }, { label: "Alerts", href: "/alerts", icon: AlertTriangle, badge: "Local" }] },
   { label: "OPERATIONS", items: [
     { label: "Sales & CRM", href: "/sales", icon: Handshake, module: "sales", badge: "12" },
     { label: "Procurement", href: "/procurement", icon: ShoppingCart, module: "procurement", badge: "5" },
     { label: "Inventory", href: "/inventory", icon: Boxes, module: "inventory" },
     { label: "Shipping", href: "/shipping", icon: Ship, module: "shipping", badge: "8" },
+    { label: "Quality & Regulatory", href: "/quality", icon: ShieldCheck, module: "quality", badge: "4" },
     { label: "Service", href: "/service", icon: Wrench, module: "service", badge: "3" },
     { label: "Projects", href: "/projects", icon: FolderKanban, module: "projects" }
   ]},
@@ -107,6 +108,17 @@ const definitions: Record<ModuleKey, ModuleDefinition> = {
       { Reference: "PO-2026-0119", Supplier: "Medline Europe", Buyer: "O. Nasser", "Order date": "09 Jun 2026", Total: "QAR 42,900", Status: "Partially received" }
     ]
   },
+  quality: {
+    key: "quality", title: "Quality & Regulatory", subtitle: "Returns, complaints, recalls, QC, CAPA and registration control", icon: ShieldCheck, color: "teal",
+    stats: [{ label: "Open RMAs", value: "1" }, { label: "Open complaints", value: "1", tone: "warning" }, { label: "Active recalls", value: "1", tone: "warning" }, { label: "Regulatory renewals", value: "1", tone: "warning" }],
+    tabs: ["Customer Returns / RMA", "Supplier Returns", "Product Complaints", "Batch Recall", "QC Inspection", "Regulatory Registration Tracker", "Certificates / Documents", "CAPA Tracker"], primaryAction: "New quality record",
+    columns: ["Record", "Type", "Related party", "Product", "Owner", "Status"],
+    rows: [
+      { Record: "RMA-2026-00018", Type: "Customer return", "Related party": "Hamad Medical Corporation", Product: "Troponin I Reagent Kit", Owner: "Quality Team", Status: "QC pending" },
+      { Record: "CMP-2026-00032", Type: "Complaint", "Related party": "Sidra Medicine", Product: "Patient Monitor MX750", Owner: "Quality Manager", Status: "Investigation open" },
+      { Record: "REC-2026-00007", Type: "Recall", "Related party": "Affected customers", Product: "Troponin I Reagent Kit", Owner: "Regulatory Affairs", Status: "Draft" }
+    ]
+  },
   service: {
     key: "service", title: "Service & Support", subtitle: "Installed base, tickets, maintenance and SLA performance", icon: Wrench, color: "rose",
     stats: [{ label: "Open tickets", value: "27" }, { label: "SLA compliance", value: "96.8%", delta: "+1.2%" }, { label: "PM due this week", value: "14" }, { label: "Critical", value: "3", tone: "warning" }],
@@ -133,7 +145,7 @@ const definitions: Record<ModuleKey, ModuleDefinition> = {
   documents: {
     key: "documents", title: "Document Center", subtitle: "Secure, versioned records across the organization", icon: Files, color: "sky",
     stats: [{ label: "Total documents", value: "8,642" }, { label: "Added this month", value: "286" }, { label: "Expiring soon", value: "18", tone: "warning" }, { label: "Storage used", value: "42.8 GB" }],
-    tabs: ["All documents", "Template List", "Generated Documents", "Customers", "Employees", "Suppliers", "Products"], primaryAction: "Upload document",
+    tabs: ["All documents", "Attachments", "Version History", "Document Expiry Tracker", "Local Archive", "Template List", "Generated Documents", "Customers", "Employees", "Suppliers", "Products"], primaryAction: "Upload document",
     columns: ["Document", "Category", "Related to", "Owner", "Updated", "Access"],
     rows: [
       { Document: "ISO 13485 Certificate.pdf", Category: "Certificate", "Related to": "MedTech Corporation", Owner: "Quality Team", Updated: "18 Jun 2026", Access: "Company" },
@@ -169,7 +181,7 @@ const definitions: Record<ModuleKey, ModuleDefinition> = {
   admin: {
     key: "admin", title: "Administration", subtitle: "Company, users, access and system configuration", icon: Settings, color: "slate",
     stats: [{ label: "Active users", value: "92" }, { label: "Defined roles", value: "13" }, { label: "Active sessions", value: "38" }, { label: "Security events", value: "0" }],
-    tabs: ["Users", "Roles & permissions", "Company", "Master Setup", "Business Units", "Departments", "Cost Centers", "Document Sequences", "Approval Thresholds", "Currencies", "Payment Terms", "Workflow Statuses", "Numbering", "Automation Monitor", "Data Import Center", "Migration Reconciliation", "UAT Tracker", "Audit log"], primaryAction: "Invite user",
+    tabs: ["Users", "Roles & permissions", "Company", "Master Setup", "Business Units", "Departments", "Cost Centers", "Document Sequences", "Approval Thresholds", "Currencies", "Payment Terms", "Workflow Statuses", "Numbering", "Automation Monitor", "Local Data Tools", "Data Import Center", "Migration Reconciliation", "UAT Tracker", "Audit log"], primaryAction: "Invite user",
     columns: ["User", "Email", "Role", "Department", "Last active", "Status"],
     rows: [
       { User: "Kashif", Email: "admin@medtech.qa", Role: "Super Admin", Department: "Executive", "Last active": "Now", Status: "Active", Password: "MedTech@2026" },
@@ -179,6 +191,25 @@ const definitions: Record<ModuleKey, ModuleDefinition> = {
     ]
   }
 };
+
+export const expertLayerTabs: Partial<Record<ModuleKey, string[]>> = {
+  sales: ["Account Plans", "Visit Logs", "Communication History", "Competitor Tracking", "Lost Reason Taxonomy", "Quote Validity Alerts", "Credit Control Warnings", "Contract & Pricelist Checks", "Sales Targets", "Follow-up Tasks"],
+  procurement: ["Supplier Scorecard", "Lead-Time Variance", "MOQ & Incoterms", "Alternate Suppliers", "Agreement Expiry", "Landed Cost Comparison", "Savings Tracker", "Delayed PO Alerts", "Supplier Performance Dashboard"],
+  inventory: ["Putaway Workflow", "Pick Pack Dispatch", "ABC Classification", "ABC Cycle Count Schedule", "Stock Aging", "Expired Stock Handling", "Quarantine Release", "Cold Chain Warnings", "Recall Traceability", "Warehouse Productivity"],
+  finance: ["Budget Control", "Budget vs Actual", "Closing Checklist", "Period Close Lock", "AR Collection Tracker", "AP Payment Planning", "Credit Control Alerts", "Cash Forecast", "VAT Validation", "Journal Review Checklist"],
+  service: ["Engineer Skill Matrix", "Repeat Failure Tracking", "SLA Breach Reasons", "Warranty Claims", "Service Profitability", "Spare Parts Consumption", "Equipment History", "PM Compliance", "Engineer Productivity", "Customer Satisfaction"],
+  projects: ["WBS", "Risk Log", "Issue Log", "Change Orders", "Budget vs Actual", "Milestone Sign-Off", "Retention Tracker", "Invoice Tracker", "Closure Checklist", "Profitability Dashboard"],
+  shipping: ["Delivery Planning", "Warehouse Handoff", "Backorder Tracking", "Delivery Exception Log", "Customs Packet", "Cold Chain Delivery Warnings", "Driver Assignment", "Delivery Performance Dashboard"],
+  quality: ["Product Complaint Workflow", "Batch Recall Workflow", "Regulatory Certificate Expiry", "Product Registration Tracker", "Calibration Tracker", "Supplier Quality Rating", "QC Checklist", "Non-Conformance Log", "Quality Dashboard"],
+  documents: ["Document Version History", "Attachment Metadata", "Contract Certificate Expiry", "Approval Signature Trail", "Document Lifecycle", "Document Owners", "Source Record Links", "Generated PDF History", "Print Views"],
+  admin: ["Role Permission Matrix", "SoD Warnings", "Audit Viewer", "Local Backup Restore", "Module Data Reset", "Change Log", "Data Health Check", "User Activity Summary", "Read-only Auditor Mode"]
+};
+
+Object.entries(expertLayerTabs).forEach(([key, tabs]) => {
+  const definition = definitions[key as ModuleKey];
+  if (!definition) return;
+  definition.tabs = [...definition.tabs, ...tabs.filter(tab => !definition.tabs.includes(tab))];
+});
 
 export const getModule = (key: string) => definitions[key as ModuleKey];
 export const moduleKeys = Object.keys(definitions) as ModuleKey[];

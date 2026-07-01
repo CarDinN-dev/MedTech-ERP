@@ -6,6 +6,7 @@ import { createDemoRecord, readDemoRecordsSnapshot, writeDemoRecordsSnapshot, ty
 import { parseExcel } from "@/lib/export/excel";
 import type { MasterDataConfig } from "@/lib/master-data";
 import { medtechScopeViews } from "@/lib/medtech-scope-data";
+import { plainText } from "@/lib/validation";
 
 type Row = Record<string, string>;
 
@@ -182,7 +183,10 @@ export async function importFinanceRows(file: File, tab: string, records: DemoRe
   const config = getFinanceConfig(tab);
   if (!config) return { valid: [], errors: [{ row: 0, message: "Unsupported finance import" }], total: 0 };
   if (file.name.toLowerCase().endsWith(".csv")) {
+    if (!["text/csv", "application/vnd.ms-excel", ""].includes(file.type)) return { valid: [], errors: [{ row: 0, message: "Only CSV files are allowed for CSV import" }], total: 0 };
+    if (file.size > 2 * 1024 * 1024) return { valid: [], errors: [{ row: 0, message: "CSV exceeds the 2 MB local-demo import limit" }], total: 0 };
     const rows = parseCsv(await file.text());
+    if (rows.length > 5000) return { valid: [], errors: [{ row: 0, message: "CSV exceeds the 5000 row local-demo import limit" }], total: rows.length };
     const seen = new Set<string>();
     const valid: Row[] = [];
     const errors: Array<{ row: number; message: string }> = [];
@@ -549,8 +553,8 @@ function monthDiff(from: string, to: string) {
 
 function parseCsv(text: string) {
   const [headerLine = "", ...lines] = text.trim().split(/\r?\n/);
-  const headers = splitCsvLine(headerLine);
-  return lines.filter(Boolean).map(line => Object.fromEntries(splitCsvLine(line).map((value, index) => [headers[index] || `Column ${index + 1}`, value])));
+  const headers = splitCsvLine(headerLine).map(header => plainText(header, 120));
+  return lines.filter(Boolean).map(line => Object.fromEntries(splitCsvLine(line).map((value, index) => [headers[index] || `Column ${index + 1}`, plainText(value)])));
 }
 
 function splitCsvLine(line: string) {

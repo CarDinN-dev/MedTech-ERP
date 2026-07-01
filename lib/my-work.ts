@@ -7,6 +7,9 @@ import { erpRoles, normalizeRole, type ErpRole } from "@/lib/erp-security";
 import { hrViews } from "@/lib/hr-data";
 import { COSTING_STORAGE_KEY, seedCostingSheets, type CostingSheet } from "@/lib/sales-costing";
 import { medtechScopeViews } from "@/lib/medtech-scope-data";
+import { getQualityView } from "@/lib/quality-workflow";
+import { getAttachmentView } from "@/lib/attachment-workflow";
+import { alertLink, readLocalAlerts } from "@/lib/local-alerts";
 
 export interface WorkTask {
   "Task No": string;
@@ -28,6 +31,7 @@ export function buildMyWorkQueue(session: DemoSession | null): WorkTask[] {
   const role = normalizeRole(session?.role);
   const user = session?.name || "";
   const tasks = [
+    ...alertTasks(),
     ...approvalTasks(),
     ...serviceTasks(),
     ...costingTasks(),
@@ -35,11 +39,19 @@ export function buildMyWorkQueue(session: DemoSession | null): WorkTask[] {
     ...salesDeadlineTasks(),
     ...contractTasks(),
     ...inventoryTasks(),
+    ...qualityTasks(),
+    ...documentTasks(),
     ...payrollTasks(),
     ...uatTasks()
   ].sort((a, b) => priorityRank(a.Priority) - priorityRank(b.Priority) || a["Due Date"].localeCompare(b["Due Date"]));
   if (role === "Super Admin" || role === "Management") return tasks;
   return tasks.filter(task => task["Assigned Role"] === role || task["Assigned User"] === user || task["Assigned User"] === "Any");
+}
+
+function alertTasks(): WorkTask[] {
+  return readLocalAlerts()
+    .filter(row => row.Status !== "Resolved")
+    .map(row => task(row["Alert No"], row["Source Module"], row["Source Record"], row.Priority, safeRole(row["Assigned Role"]), row["Assigned User"], row["Due Date"], row.Status, row["Alert Type"], alertLink(row), row.Message));
 }
 
 function approvalTasks(): WorkTask[] {
@@ -93,6 +105,23 @@ function inventoryTasks(): WorkTask[] {
   ];
 }
 
+function documentTasks(): WorkTask[] {
+  return rows("documents:Document Expiry Tracker", "documents.Document Expiry Tracker")
+    .filter(row => row.Status !== "Closed" && (row.Status === "Review due" || row["Expiry Status"] !== "Valid"))
+    .map(row => task(`DOC-${row["Attachment No"]}`, "Documents", row["Source Record"], row["Expiry Status"] === "Expired" ? "Critical" : "High", ownerRole(row.Owner), row.Owner || "Any", row["Expiry Date"], row.Status, "Renew expiring document metadata", "/documents", `${row["Document Category"]}: ${row["File Name"]}`));
+}
+
+function qualityTasks(): WorkTask[] {
+  const regulatory = rows("quality:Regulatory Registration Tracker", "quality.Regulatory Registration Tracker").filter(row => row.Status !== "Active" || daysUntil(row["Expiry Date"]) <= 90);
+  const recalls = rows("quality:Batch Recall", "quality.Batch Recall").filter(row => !["Closed", "Cancelled"].includes(row.Status));
+  const capas = rows("quality:CAPA Tracker", "quality.CAPA Tracker").filter(row => !["Closed", "Effective"].includes(row.Status));
+  return [
+    ...regulatory.map(row => task(`REG-${row["Certificate No"]}`, "Quality", row.Product, daysUntil(row["Expiry Date"]) <= 30 ? "Critical" : "High", "Management", row["Renewal Owner"] || "Any", row["Expiry Date"], row.Status, "Renew product registration", "/quality", row["Certificate No"])),
+    ...recalls.map(row => task(row["Recall No"], "Quality", row.Product, "Critical", "Management", "Any", today(), row.Status, "Trace recall and quarantine affected stock", "/quality", row["Batch/Lot"])),
+    ...capas.map(row => task(row["CAPA No"], "Quality", row["Related Record"], "High", "Management", row.Owner || "Any", row["Due Date"], row.Status, "Complete CAPA action and effectiveness check", "/quality", row.Source))
+  ];
+}
+
 function payrollTasks(): WorkTask[] {
   const approvals = readApprovalRequests().filter(row => row["Request Type"] === "Payroll finalization" && row.Status === "Pending");
   const runs = readDemoRecordsSnapshot("hr-payroll:Monthly Payroll", []).filter(row => row.Status === "Validated");
@@ -114,7 +143,7 @@ function task(no: string, sourceModule: string, sourceRecord: string, priority: 
 
 function rows(storageKey: string, seedKey: string) {
   const hrKey = seedKey.replace("hr.", "") as keyof typeof hrViews;
-  return readDemoRecordsSnapshot(storageKey, medtechScopeViews[seedKey]?.rows ?? hrViews[hrKey]?.rows ?? []);
+  return readDemoRecordsSnapshot(storageKey, medtechScopeViews[seedKey]?.rows ?? getQualityView(seedKey.replace("quality.", ""))?.rows ?? getAttachmentView(seedKey.replace("documents.", ""))?.rows ?? hrViews[hrKey]?.rows ?? []);
 }
 
 function readCostings() {
@@ -143,6 +172,12 @@ function priorityRank(priority: string) {
 
 function qty(value = "") {
   return Number(String(value).replace(/[^0-9.-]/g, "")) || 0;
+}
+
+function daysUntil(value = "") {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 9999;
+  return Math.ceil((date.getTime() - Date.now()) / 86400000);
 }
 
 function isoDate(value = "") {
