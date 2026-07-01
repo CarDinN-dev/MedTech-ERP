@@ -22,6 +22,15 @@ describe("branded PDF generation", () => {
     });
   });
 
+  it("generates a service report PDF with field-service details", async () => {
+    await assertPdf({
+      template: "service_report", documentNumber: "SRV-RPT-2026-0142", date: "20 June 2026", partyLabel: "Customer", partyName: "Hamad Medical Corporation",
+      subject: "CT Injector System service report",
+      metadata: [["Engineer", "Naveen Kumar"], ["Equipment", "CT Injector System"], ["Issue", "Injector pressure fault"], ["Work performed", "Calibration and pressure test completed"], ["Spare parts consumed", "Adult SpO2 Sensor x 1"], ["Timesheet", "2.5 hrs"], ["Customer signature", "Pending"]],
+      terms: ["Customer signature placeholder included for local demo sign-off."], preparedBy: "Naveen Kumar", approvedBy: "Service Manager"
+    });
+  });
+
   it.each(["approval_to_hire", "hiring_approval", "offer_letter"] as const)("generates the supplied HR form format: %s", async template => {
     await assertPdf({
       template, documentNumber: "HR-REF-2026-001", date: "21 June 2026", partyLabel: "Candidate", partyName: "Noor Al-Hajri",
