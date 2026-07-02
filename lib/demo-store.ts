@@ -115,8 +115,25 @@ const dataVersions: Record<string, string> = {
   "hr-operations:Leave:Leave Handover": "v4",
   "hr-operations:Leave:Clearance": "v4",
   "hr-operations:Leave:Rejoin": "v4",
+  "hr-operations:Attendance:Absence Monitoring": "v3",
+  "hr-operations:Payroll:Salary Records": "v4",
+  "hr-operations:Payroll:Overtime": "v4",
+  "hr-operations:Payroll:Salary Advance": "v4",
+  "hr-operations:Payroll:Salary Adjustment": "v4",
+  "hr-operations:Payroll:Paid Vacation Salary": "v4",
+  "hr-operations:Payroll:Gratuity": "v4",
+  "hr-operations:Payroll:Employee Loan": "v4",
+  "hr-operations:Payroll:Salary Account Transfer": "v4",
+  "hr-operations:Payroll:Insurance Claims / Refund": "v4",
+  "hr-operations:Payroll:Air Ticket Encashment": "v4",
+  "hr-operations:Payroll:Leave Settlement": "v4",
+  "hr-operations:Payroll:Final Settlement": "v4",
+  "hr-payroll:Monthly Payroll": "v6",
+  "hr-pay-process": "v3",
   "alerts:Alerts": "v2"
 };
+
+const seedOnlyOnVersionChange = (moduleKey: string) => moduleKey === "hr-payroll:Monthly Payroll" || moduleKey === "hr-operations:Attendance:Absence Monitoring" || moduleKey.startsWith("hr-operations:Payroll:");
 
 export const demoRecordsStorageKey = (moduleKey: string) => `medtech-demo:${moduleKey}:records:${dataVersions[moduleKey] ?? "v2"}`;
 
@@ -167,6 +184,7 @@ export function readDemoRecordsSnapshot(moduleKey: string, seedRows: Array<Recor
     const key = demoRecordsStorageKey(moduleKey);
     const stored = recordsFromStored(safeParse(localStorage.getItem(key)));
     if (stored) return migrateRecords(stored, seedRows);
+    if (seedOnlyOnVersionChange(moduleKey)) return fallback;
     const legacyKey = legacyStorageKey(moduleKey);
     if (!legacyKey || legacyKey === key) return fallback;
     const legacy = recordsFromStored(safeParse(localStorage.getItem(legacyKey)));
