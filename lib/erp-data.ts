@@ -15,24 +15,26 @@ export interface ModuleDefinition {
 }
 
 export const navGroups: { label: string; items: NavItem[] }[] = [
-  { label: "OVERVIEW", items: [{ label: "Dashboard", href: "/", icon: LayoutDashboard }, { label: "My Work", href: "/my-work", icon: Inbox, badge: "New" }, { label: "Alerts", href: "/alerts", icon: AlertTriangle, badge: "Local" }] },
-  { label: "OPERATIONS", items: [
+  { label: "Overview", items: [{ label: "Dashboard", href: "/", icon: LayoutDashboard }, { label: "My Work", href: "/my-work", icon: Inbox, badge: "New" }, { label: "Alerts", href: "/alerts", icon: AlertTriangle, badge: "Local" }] },
+  { label: "Commercial", items: [
     { label: "Sales & CRM", href: "/sales", icon: Handshake, module: "sales", badge: "12" },
+    { label: "Projects", href: "/projects", icon: FolderKanban, module: "projects" },
+    { label: "Service", href: "/service", icon: Wrench, module: "service", badge: "3" }
+  ]},
+  { label: "Operations", items: [
     { label: "Procurement", href: "/procurement", icon: ShoppingCart, module: "procurement", badge: "5" },
     { label: "Inventory", href: "/inventory", icon: Boxes, module: "inventory" },
     { label: "Shipping", href: "/shipping", icon: Ship, module: "shipping", badge: "8" },
-    { label: "Quality & Regulatory", href: "/quality", icon: ShieldCheck, module: "quality", badge: "4" },
-    { label: "Service", href: "/service", icon: Wrench, module: "service", badge: "3" },
-    { label: "Projects", href: "/projects", icon: FolderKanban, module: "projects" }
+    { label: "Quality & Regulatory", href: "/quality", icon: ShieldCheck, module: "quality", badge: "4" }
   ]},
-  { label: "CORPORATE", items: [
+  { label: "Corporate", items: [
     { label: "Finance", href: "/finance", icon: Banknote, module: "finance" },
     { label: "People & HR", href: "/hr", icon: UsersRound, module: "hr" },
     { label: "Documents", href: "/documents", icon: Files, module: "documents" },
     { label: "Approvals", href: "/approvals", icon: BadgeCheck, module: "approvals", badge: "7" },
     { label: "Reports", href: "/reports", icon: ChartNoAxesCombined, module: "reports" }
   ]},
-  { label: "SYSTEM", items: [{ label: "Administration", href: "/admin", icon: UserCog, module: "admin" }] }
+  { label: "System", items: [{ label: "Administration", href: "/admin", icon: UserCog, module: "admin" }] }
 ];
 
 const definitions: Record<ModuleKey, ModuleDefinition> = {
@@ -109,7 +111,7 @@ const definitions: Record<ModuleKey, ModuleDefinition> = {
     ]
   },
   quality: {
-    key: "quality", title: "Quality & Regulatory", subtitle: "Returns, complaints, recalls, QC, CAPA and registration control", icon: ShieldCheck, color: "teal",
+    key: "quality", title: "Quality & Regulatory", subtitle: "Returns, complaints, recalls, QC, CAPA and registration control", icon: ShieldCheck, color: "navy",
     stats: [{ label: "Open RMAs", value: "1" }, { label: "Open complaints", value: "1", tone: "warning" }, { label: "Active recalls", value: "1", tone: "warning" }, { label: "Regulatory renewals", value: "1", tone: "warning" }],
     tabs: ["Customer Returns / RMA", "Supplier Returns", "Product Complaints", "Batch Recall", "QC Inspection", "Regulatory Registration Tracker", "Certificates / Documents", "CAPA Tracker"], primaryAction: "New quality record",
     columns: ["Record", "Type", "Related party", "Product", "Owner", "Status"],
@@ -155,7 +157,7 @@ const definitions: Record<ModuleKey, ModuleDefinition> = {
     ]
   },
   approvals: {
-    key: "approvals", title: "Approvals", subtitle: "One controlled queue for business decisions", icon: BadgeCheck, color: "teal",
+    key: "approvals", title: "Approvals", subtitle: "One controlled queue for business decisions", icon: BadgeCheck, color: "navy",
     stats: [{ label: "Awaiting my action", value: "7" }, { label: "Due today", value: "3", tone: "warning" }, { label: "Approved this month", value: "84" }, { label: "Average cycle", value: "6.4 hrs", delta: "-18%" }],
     tabs: ["My approvals", "Submitted by me", "Completed", "Workflow rules", "Approval Matrix"], primaryAction: "New request",
     columns: ["Request", "Type", "Requested by", "Submitted", "Amount / Impact", "Status"],
@@ -215,7 +217,7 @@ export const getModule = (key: string) => definitions[key as ModuleKey];
 export const moduleKeys = Object.keys(definitions) as ModuleKey[];
 
 export const dashboardKpis = [
-  { title: "Revenue", value: "QAR 2.84M", change: "+12.8%", note: "vs. last month", icon: CircleDollarSign, color: "teal" },
+  { title: "Revenue", value: "QAR 2.84M", change: "+12.8%", note: "vs. last month", icon: CircleDollarSign, color: "navy" },
   { title: "Open quotations", value: "42", change: "QAR 4.82M", note: "total pipeline value", icon: FileText, color: "blue" },
   { title: "Outstanding invoices", value: "QAR 1.24M", change: "14 overdue", note: "QAR 184K at risk", icon: ReceiptText, color: "orange" },
   { title: "Stock alerts", value: "23", change: "14 expiring", note: "action required", icon: AlertTriangle, color: "rose" }
