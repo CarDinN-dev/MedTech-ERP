@@ -101,12 +101,13 @@ export function calculateAgeInDays(date: string | Date) {
   return Math.floor((Date.now() - parsed.getTime()) / 86_400_000);
 }
 
-export type StatusTone = "success" | "warning" | "danger" | "info";
+export type StatusTone = "success" | "warning" | "danger" | "info" | "neutral";
 
 export function statusTone(status: string): StatusTone {
   const value = status.toLowerCase();
+  if (["draft", "neutral", "not required", "none", "inactive", "available"].some(token => value.includes(token))) return "neutral";
   if (["active", "approved", "completed", "paid", "posted", "ready", "released", "won", "on track"].some(token => value.includes(token))) return "success";
-  if (["pending", "draft", "submitted", "review", "partial", "watch", "low", "due"].some(token => value.includes(token))) return "warning";
+  if (["pending", "submitted", "review", "partial", "watch", "low", "due"].some(token => value.includes(token))) return "warning";
   if (["rejected", "cancelled", "overdue", "expired", "blocked", "critical", "risk", "hold"].some(token => value.includes(token))) return "danger";
   return "info";
 }
