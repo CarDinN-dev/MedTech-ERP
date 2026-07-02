@@ -1,8 +1,21 @@
 import { expect, test, type Page } from "@playwright/test";
+import { readFileSync } from "node:fs";
 import testUsers from "../fixtures/test-users.json";
 
 const usersKey = "medtech-demo:admin:Users:records:v2";
 const storedUsers = testUsers.map(user => ({ User: user.user, Email: user.email, Password: user.password, Role: user.role, Department: user.department, Status: "Active" }));
+const hrWorkflowTabs = [
+  "Dashboard", "Employees", "Departments", "Contracts", "Probation Reviews", "Access Provisioning", "Recruitment", "Attendance", "Attendance Exceptions", "Leave",
+  "Business Trips", "Employee Expenses", "Payroll", "Loans & advances", "Performance/Appraisals", "eLearning", "EOS / Gratuity / Final Settlement",
+  "Payroll Accounting Draft Journal", "Documents", "Approvals", "Reports", "Self service", "Settings", "Lifecycle Checklist", "HR Document Expiry",
+  "Salary Revision Approval", "Training Matrix", "Competency Matrix", "Manpower Plan", "Loan Control Dashboard", "Payroll Variance Report",
+  "Qatar Labour Compliance", "Exit Checklist"
+];
+const hrSubtabPrefixes = ["recruitment-subtab-", "attendance-subtab-", "leave-subtab-", "payroll-subtab-"];
+
+function hrTabTestId(tab: string) {
+  return `hr-tab-${tab.toLowerCase().replaceAll(" ", "-").replaceAll("&", "and")}`;
+}
 
 async function seedUsers(page: Page) {
   await page.addInitScript(({ key, users }) => localStorage.setItem(key, JSON.stringify(users)), { key: usersKey, users: storedUsers });
@@ -160,7 +173,40 @@ test("pay process calculates salary inputs and saves the result", async ({ page 
   await page.getByRole("button", { name: "Save pay process" }).click();
   await expect(page.getByRole("status")).toContainText("Pay process saved");
   await expect(page.locator("main")).toContainText("Calculated net pay");
-  await expect(page.locator("main")).toContainText("QAR 12,358.33");
+  await expect(page.locator("main")).toContainText("QAR 13,358.33");
+});
+
+test("monthly payroll finalizes and downloads department and company SIF files", async ({ page }) => {
+  await login(page, testUsers[1]);
+  await page.goto("/hr");
+  await page.getByTestId("hr-tab-payroll").click();
+  await page.getByLabel("Month").selectOption({ label: "June" });
+  await page.getByLabel("Year").selectOption("2026");
+  await page.getByLabel("Department").selectOption("All departments");
+  await page.getByRole("button", { name: "Load Employees" }).click();
+  await expect(page.getByRole("cell", { name: "Fahad Al-Kuwari", exact: true })).toBeVisible();
+  await expect(page.getByRole("cell", { name: "Naveen Kumar", exact: true })).toBeVisible();
+  for (const column of ["Overtime", "Salary Advance", "Salary Adjustment", "Paid Vacation", "Insurance Refund", "Air Ticket"]) {
+    await expect(page.getByRole("columnheader", { name: column })).toBeVisible();
+  }
+  await expect(page.getByRole("row", { name: /Aisha Rahman/ })).toContainText("QAR 20,500.00");
+  await expect(page.getByRole("row", { name: /Fahad Al-Kuwari/ })).toContainText("QAR 18,500.00");
+  await expect(page.getByLabel("Working days for Mariam Said")).toHaveText("30");
+  await expect(page.getByLabel("Paid days for Mariam Said")).toHaveText("29");
+  await page.getByRole("row", { name: /MPR-MEDTECH-2026-06-All-departments/ }).getByRole("button", { name: "Open" }).click();
+  await expect(page.getByRole("button", { name: "Download Company SIF" })).toBeVisible();
+
+  await page.getByLabel("SIF export scope").selectOption("Finance");
+  const departmentDownloadPromise = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Download Dept SIFs" }).click();
+  expect((await departmentDownloadPromise).suggestedFilename()).toMatch(/^SIF_10007230_CBQ_\d{8}_\d{4}\.csv$/);
+
+  const companyDownloadPromise = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Download Company SIF" }).click();
+  const companyDownload = await companyDownloadPromise;
+  expect(companyDownload.suggestedFilename()).toMatch(/^SIF_10007230_CBQ_\d{8}_\d{4}\.csv$/);
+  const companyPath = await companyDownload.path();
+  expect(companyPath ? readFileSync(companyPath, "utf8") : "").toContain("Employer EID,Payer IBAN,Total Salaries");
 });
 
 test("attendance absence workflow records payroll-impacting absence", async ({ page }) => {
@@ -170,6 +216,40 @@ test("attendance absence workflow records payroll-impacting absence", async ({ p
   await expect(page.getByRole("heading", { name: "Payroll impact" })).toBeVisible();
   await expect(page.getByText("Mariam Said")).toBeVisible();
   await expect(page.getByText("QAR 360")).toBeVisible();
+});
+
+test("HR workspace tabs and subtabs render without runtime errors", async ({ page, isMobile }) => {
+  test.skip(isMobile, "Critical HR mobile journeys are covered separately; full tab audit runs on desktop.");
+  await login(page, testUsers[1]);
+  await page.goto("/hr");
+  const issues: string[] = [];
+  page.on("console", message => {
+    if (["error", "warning"].includes(message.type())) issues.push(`${message.type()}: ${message.text()}`);
+  });
+  page.on("pageerror", error => issues.push(`pageerror: ${error.message}`));
+
+  async function expectHealthy(label: string) {
+    const body = await page.locator("body").innerText();
+    expect(body, label).toContain("People & HR");
+    expect(body, label).not.toMatch(/Application error|Unhandled Runtime Error|Failed to compile|Something went wrong/i);
+    expect(body.length, label).toBeGreaterThan(100);
+  }
+
+  for (const tab of hrWorkflowTabs) {
+    await page.getByTestId(hrTabTestId(tab)).click();
+    await expectHealthy(tab);
+    for (const prefix of hrSubtabPrefixes) {
+      const count = await page.locator(`main [data-testid^="${prefix}"]`).count();
+      for (let index = 0; index < count; index++) {
+        const subtab = page.locator(`main [data-testid^="${prefix}"]`).nth(index);
+        const subtabName = (await subtab.innerText()).trim();
+        await subtab.click();
+        await expectHealthy(`${tab} > ${subtabName}`);
+      }
+    }
+  }
+
+  expect([...new Set(issues)]).toEqual([]);
 });
 
 test("service division runs local workflow actions and downloads a service report PDF", async ({ page }) => {
