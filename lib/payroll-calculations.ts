@@ -17,6 +17,13 @@ export interface MonthlyPayrollLineInput {
   leaveDays: number;
   loanDeduction: number;
   otherDeductions: number;
+  overtimeHours: number;
+  overtimeAmount: number;
+  salaryAdvanceAmount: number;
+  salaryAdjustmentAmount: number;
+  paidVacationSalaryAmount: number;
+  insuranceRefundAmount: number;
+  airTicketEncashmentAmount: number;
   leaveSettlementAmount: number;
   eosSettlementAmount: number;
   hasBankDetails: boolean;
@@ -24,6 +31,7 @@ export interface MonthlyPayrollLineInput {
 
 export interface MonthlyPayrollLineResult {
   salaryPayable: number;
+  totalEarnings: number;
   totalDeductions: number;
   netPay: number;
 }
@@ -35,11 +43,26 @@ export function calculateSalaryPayable(input: Pick<MonthlyPayrollLineInput, "gro
 
 export function calculateMonthlyPayrollLine(input: MonthlyPayrollLineInput, settings: MonthlyPayrollSettings, calendarDays: number): MonthlyPayrollLineResult {
   const salaryPayable = calculateSalaryPayable(input, settings, calendarDays);
-  const totalDeductions = money(positive(input.loanDeduction) + positive(input.otherDeductions));
+  const totalEarnings = money(
+    positive(input.overtimeAmount) +
+    positive(input.salaryAdjustmentAmount) +
+    positive(input.paidVacationSalaryAmount) +
+    positive(input.insuranceRefundAmount) +
+    positive(input.airTicketEncashmentAmount) +
+    positive(input.leaveSettlementAmount) +
+    positive(input.eosSettlementAmount)
+  );
+  const totalDeductions = money(
+    positive(input.loanDeduction) +
+    positive(input.salaryAdvanceAmount) +
+    positive(input.otherDeductions) +
+    positive(-input.salaryAdjustmentAmount)
+  );
   return {
     salaryPayable,
+    totalEarnings,
     totalDeductions,
-    netPay: money(salaryPayable + positive(input.leaveSettlementAmount) + positive(input.eosSettlementAmount) - totalDeductions)
+    netPay: money(salaryPayable + totalEarnings - totalDeductions)
   };
 }
 
