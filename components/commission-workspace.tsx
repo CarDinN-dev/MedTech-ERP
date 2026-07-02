@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { Download, RefreshCcw, Search } from "lucide-react";
@@ -42,7 +42,7 @@ export function CommissionWorkspace() {
       <Metric label="Payroll ready" value={String(filtered.filter(line => line["Payroll Ready"] === "Yes").length)} />
     </div>
     <div className="flex flex-wrap items-center gap-3 border-b px-5 py-3.5">
-      <div className="relative min-w-[220px] flex-1 md:max-w-sm"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search commissions..." className="h-9 w-full rounded-lg border bg-[var(--panel)] pl-9 pr-3 text-sm outline-none focus:border-teal-500" /></div>
+      <div className="relative min-w-[220px] flex-1 md:max-w-sm"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search commissions..." className="h-9 w-full rounded-lg border bg-[var(--panel)] pl-9 pr-3 text-sm outline-none focus:border-medtech-red" /></div>
       <Button variant="secondary" onClick={ready}><RefreshCcw className="h-4 w-4" />Payroll Ready</Button>
       <Button variant="secondary" onClick={() => exportRows(false)}><Download className="h-4 w-4" />Excel</Button>
       <Button onClick={() => exportRows(true)}><Download className="h-4 w-4" />Payroll Export</Button>
@@ -61,3 +61,4 @@ function money(value: string) {
   const parsed = Number(value.replace(/[^0-9.-]/g, ""));
   return Number.isFinite(parsed) ? parsed : 0;
 }
+
