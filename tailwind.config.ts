@@ -6,15 +6,15 @@ export default {
   theme: {
     extend: {
       colors: {
-        ink: "#0F172A",
+        ink: "var(--text)",
         medtech: {
           red: "#ED1E36",
-          redDark: "#C9162C",
-          navy: "#243168",
-          deep: "#1B1F3D",
-          purple: "#592C5A",
-          magenta: "#B22541",
-          rose: "#8B274B"
+          redDark: "var(--brand-red-hover)",
+          navy: "var(--corporate-navy)",
+          deep: "var(--deep-navy)",
+          purple: "var(--purple)",
+          magenta: "var(--magenta)",
+          rose: "var(--dark-rose)"
         },
         ui: {
           page: "var(--page)",
@@ -30,8 +30,8 @@ export default {
         }
       },
       boxShadow: {
-        soft: "0 1px 2px rgba(15,23,42,.05)",
-        panel: "0 12px 30px rgba(15,23,42,.12)",
+        soft: "var(--surface-glow)",
+        panel: "var(--shell-shadow), var(--surface-glow)",
         focus: "0 0 0 3px var(--focus-ring)"
       },
       borderRadius: { xl: "0.75rem", "2xl": "1rem" },
