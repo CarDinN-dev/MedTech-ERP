@@ -48,7 +48,7 @@ interface ApprovalRule {
   requires: (source: ApprovalSource) => boolean;
 }
 
-export const APPROVAL_STORAGE_KEY = "medtech-demo:approval-matrix:requests:v1";
+export const APPROVAL_STORAGE_KEY = "medtech-demo:approval-matrix:requests:v2";
 
 const rules: ApprovalRule[] = [
   rule("APR-SALES-DISC-10", "Sales", "Quotation discount", "Sales Manager", "Fahad Al-Kuwari", "Discount % > 10", source => (source.discountPercent ?? 0) > 10),
@@ -90,6 +90,7 @@ export function seedApprovalRequests(): ApprovalRequest[] {
     approvalRequest({ sourceModule: "Sales", sourceRecord: "SFS-2026-0031", requestType: "Quotation discount", requestedBy: "F. Al-Kuwari", amount: 286000, discountPercent: 18, customerTier: "Government", businessUnit: "Diagnostics" }, "Pending"),
     approvalRequest({ sourceModule: "Procurement", sourceRecord: "PO-2026-0124", requestType: "Purchase order", requestedBy: "M. Said", amount: 94750, businessUnit: "Diagnostics" }, "Pending"),
     approvalRequest({ sourceModule: "Human Resources - Payroll", sourceRecord: "MPR-MEDTECH-2026-06-Sales", requestType: "Payroll finalization", requestedBy: "Payroll Manager", amount: 277600, businessUnit: "Sales" }, "Approved", "Approved", "Ready for final payroll posting."),
+    approvalRequest({ sourceModule: "Human Resources - Payroll", sourceRecord: "MPR-MEDTECH-2026-06-All-departments", requestType: "Payroll finalization", requestedBy: "Payroll Manager", amount: 92500, businessUnit: "All departments" }, "Approved", "Approved", "Ready for company-wide final payroll posting."),
     approvalRequest({ sourceModule: "Finance", sourceRecord: "EXP-2026-00448", requestType: "Expense", requestedBy: "K. Varghese", amount: 12480, businessUnit: "Projects" }, "Pending"),
     approvalRequest({ sourceModule: "Inventory", sourceRecord: "STK-ADJ-0092", requestType: "Cycle count variance", requestedBy: "Warehouse Team", amount: 3240, businessUnit: "Warehouse" }, "Pending")
   ];
