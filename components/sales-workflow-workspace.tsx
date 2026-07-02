@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { BadgeCheck, CheckCircle2, Download, FileText, Plus, RotateCcw, Save, Search, X } from "lucide-react";
@@ -169,8 +169,8 @@ export function SalesWorkflowWorkspace({ initialPathway }: { initialPathway?: Sa
 
   return <div className="overflow-hidden bg-[var(--panel)]">
     <div className="flex flex-wrap items-center gap-2 border-b px-5 py-3">
-      {pathwayKeys.map(key => <button key={key} onClick={() => setPathway(key)} className={cn("h-9 rounded-lg border px-3 text-xs font-bold transition", pathway === key ? "border-teal-500 bg-teal-50 text-teal-700 dark:bg-teal-950/40 dark:text-teal-200" : "bg-[var(--panel)] text-[var(--muted)] hover:bg-slate-50 dark:hover:bg-slate-800")}>{salesWorkflowPathways[key].shortLabel}</button>)}
-      <div className="relative ml-auto min-w-[220px] flex-1 md:max-w-sm"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search workflows..." className="h-9 w-full rounded-lg border bg-[var(--panel)] pl-9 pr-3 text-sm outline-none focus:border-teal-500" /></div>
+      {pathwayKeys.map(key => <button key={key} onClick={() => setPathway(key)} className={cn("h-9 rounded-lg border px-3 text-xs font-bold transition", pathway === key ? "border-medtech-red bg-[var(--navy-tint)] text-medtech-navy dark:bg-[var(--elevated)] dark:text-red-100" : "bg-[var(--panel)] text-[var(--muted)] hover:bg-slate-50 dark:hover:bg-slate-800")}>{salesWorkflowPathways[key].shortLabel}</button>)}
+      <div className="relative ml-auto min-w-[220px] flex-1 md:max-w-sm"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search workflows..." className="h-9 w-full rounded-lg border bg-[var(--panel)] pl-9 pr-3 text-sm outline-none focus:border-medtech-red" /></div>
       <Button variant="secondary" onClick={exportRows}><Download className="h-4 w-4" />Excel</Button>
       <Button variant="secondary" onClick={downloadPdf} disabled={!selected}><FileText className="h-4 w-4" />PDF</Button>
       <Button variant="secondary" onClick={reset}><RotateCcw className="h-4 w-4" />Reset</Button>
@@ -182,7 +182,7 @@ export function SalesWorkflowWorkspace({ initialPathway }: { initialPathway?: Sa
         <div className="max-h-[650px] overflow-auto divide-y">
           {visible.map(record => {
             const totals = workflowTotals(record);
-            return <button key={record.id} onClick={() => setSelectedId(record.id)} className={cn("block w-full px-5 py-4 text-left transition hover:bg-slate-50 dark:hover:bg-slate-800/50", selected?.id === record.id && "bg-teal-50/70 dark:bg-teal-950/20")}>
+            return <button key={record.id} onClick={() => setSelectedId(record.id)} className={cn("block w-full px-5 py-4 text-left transition hover:bg-slate-50 dark:hover:bg-slate-800/50", selected?.id === record.id && "bg-[var(--navy-tint)] dark:bg-[var(--elevated)]")}>
               <div className="flex items-start justify-between gap-3"><div><div className="text-xs font-bold">{record.reference}</div><div className="mt-1 text-sm font-semibold">{record.title}</div></div><StatusBadge>{record.status}</StatusBadge></div>
               <div className="mt-2 text-xs text-[var(--muted)]">{record.customer}</div>
               <div className="mt-3 grid grid-cols-3 gap-2 text-[11px]"><span>{currentStage(record)}</span><span>{formatMoney(totals.net)}</span><span>{totals.marginPercent.toFixed(1)}%</span></div>
@@ -194,7 +194,7 @@ export function SalesWorkflowWorkspace({ initialPathway }: { initialPathway?: Sa
       {selected ? <WorkflowDetail record={selected} onEdit={() => { setEditing(selected); setModalOpen(true); }} onAdvance={advance} onApprove={() => decide("Approved")} onReject={() => decide("Rejected")} onSubmitApproval={submitApproval} onGenerate={generateDocument} /> : <div className="p-8 text-sm text-[var(--muted)]">Create a workflow to begin.</div>}
     </div>
     {modalOpen && <WorkflowModal record={editing} pathway={pathway} onClose={() => setModalOpen(false)} onSave={saveRecord} />}
-    {toast && <div role="status" className="fixed bottom-5 right-5 z-[100] flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-xs font-medium text-white shadow-panel"><CheckCircle2 className="h-4 w-4 text-teal-400" />{toast}</div>}
+    {toast && <div role="status" className="fixed bottom-5 right-5 z-[100] flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-xs font-medium text-white shadow-panel"><CheckCircle2 className="h-4 w-4 text-red-300" />{toast}</div>}
   </div>;
 }
 
@@ -204,11 +204,11 @@ function WorkflowDetail({ record, onEdit, onAdvance, onApprove, onReject, onSubm
   const alertCount = record.pathway === "gpprr" ? replenishmentAlerts(record).length : 0;
   return <div className="min-w-0 p-5">
     <div className="flex flex-wrap items-start justify-between gap-3">
-      <div><div className="text-[10px] font-bold uppercase text-teal-600">{salesWorkflowPathways[record.pathway].label}</div><h2 className="mt-1 text-xl font-bold">{record.title}</h2><div className="mt-1 text-xs text-[var(--muted)]">{record.customer} / {record.owner || "Unassigned"}</div></div>
+      <div><div className="text-[10px] font-bold uppercase text-medtech-red">{salesWorkflowPathways[record.pathway].label}</div><h2 className="mt-1 text-xl font-bold">{record.title}</h2><div className="mt-1 text-xs text-[var(--muted)]">{record.customer} / {record.owner || "Unassigned"}</div></div>
       <div className="flex flex-wrap gap-2"><Button variant="secondary" onClick={onEdit}>Edit</Button><Button variant="secondary" onClick={onSubmitApproval}>Submit approval</Button><Button variant="secondary" onClick={onApprove}><BadgeCheck className="h-4 w-4" />Approve</Button><Button variant="secondary" onClick={onReject}>Reject</Button><Button onClick={onAdvance}>Advance stage</Button></div>
     </div>
 
-    <div className="mt-5 overflow-x-auto pb-2"><div className="flex min-w-max gap-2">{stages.map((stage, index) => <div key={stage} className={cn("w-36 rounded-lg border px-3 py-2 text-xs", index < record.stageIndex ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200" : index === record.stageIndex ? "border-teal-400 bg-teal-50 font-bold text-teal-800 dark:bg-teal-950/40 dark:text-teal-200" : "text-[var(--muted)]")}>{stage}</div>)}</div></div>
+    <div className="mt-5 overflow-x-auto pb-2"><div className="flex min-w-max gap-2">{stages.map((stage, index) => <div key={stage} className={cn("w-36 rounded-lg border px-3 py-2 text-xs", index < record.stageIndex ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200" : index === record.stageIndex ? "border-medtech-red/70 bg-[var(--navy-tint)] font-bold text-medtech-navy dark:bg-[var(--elevated)] dark:text-red-100" : "text-[var(--muted)]")}>{stage}</div>)}</div></div>
 
     <div className="mt-5 grid gap-4 lg:grid-cols-4">
       <SummaryCard label="Approval" value={record.approvalStatus} />
@@ -250,18 +250,18 @@ function WorkflowModal({ record, pathway, onClose, onSave }: { record: SalesWork
 
   return <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/45 p-4">
     <div className="w-full max-w-4xl overflow-hidden rounded-2xl border bg-[var(--panel)] shadow-panel">
-      <div className="flex items-center justify-between border-b px-5 py-4"><div><div className="text-[10px] font-bold uppercase text-teal-600">Local demo workflow</div><h3 className="font-bold">{record ? "Edit workflow" : "Create workflow"}</h3></div><button aria-label="Close modal" onClick={onClose} className="rounded-lg p-2 hover:bg-slate-100 dark:hover:bg-slate-800"><X className="h-4 w-4" /></button></div>
+      <div className="flex items-center justify-between border-b px-5 py-4"><div><div className="text-[10px] font-bold uppercase text-medtech-red">Local demo workflow</div><h3 className="font-bold">{record ? "Edit workflow" : "Create workflow"}</h3></div><button aria-label="Close modal" onClick={onClose} className="rounded-lg p-2 hover:bg-slate-100 dark:hover:bg-slate-800"><X className="h-4 w-4" /></button></div>
       <div className="grid max-h-[70vh] gap-4 overflow-auto p-5 sm:grid-cols-2">
         <Field label="Reference" value={values.reference} onChange={value => update("reference", value)} />
-        <label><span className="mb-1.5 block text-[11px] font-semibold text-[var(--muted)]">Pathway</span><select value={values.pathway} onChange={event => setValues(blankWorkflow(event.target.value as SalesPathwayKey, values))} className="h-10 w-full rounded-xl border bg-[var(--panel)] px-3 text-sm outline-none focus:border-teal-500">{pathwayKeys.map(key => <option key={key} value={key}>{salesWorkflowPathways[key].label}</option>)}</select></label>
+        <label><span className="mb-1.5 block text-[11px] font-semibold text-[var(--muted)]">Pathway</span><select value={values.pathway} onChange={event => setValues(blankWorkflow(event.target.value as SalesPathwayKey, values))} className="h-10 w-full rounded-xl border bg-[var(--panel)] px-3 text-sm outline-none focus:border-medtech-red">{pathwayKeys.map(key => <option key={key} value={key}>{salesWorkflowPathways[key].label}</option>)}</select></label>
         <Field label="Title" value={values.title} onChange={value => update("title", value)} />
         <Field label="Customer" value={values.customer} onChange={value => update("customer", value)} />
         <Field label="Owner" value={values.owner} onChange={value => update("owner", value)} />
-        <label><span className="mb-1.5 block text-[11px] font-semibold text-[var(--muted)]">Approval status</span><select value={values.approvalStatus} onChange={event => update("approvalStatus", event.target.value)} className="h-10 w-full rounded-xl border bg-[var(--panel)] px-3 text-sm outline-none focus:border-teal-500"><option>Not required</option><option>Pending</option><option>Approved</option><option>Rejected</option></select></label>
+        <label><span className="mb-1.5 block text-[11px] font-semibold text-[var(--muted)]">Approval status</span><select value={values.approvalStatus} onChange={event => update("approvalStatus", event.target.value)} className="h-10 w-full rounded-xl border bg-[var(--panel)] px-3 text-sm outline-none focus:border-medtech-red"><option>Not required</option><option>Pending</option><option>Approved</option><option>Rejected</option></select></label>
         <Field label="Outcome" value={values.outcome} onChange={value => update("outcome", value)} placeholder="Won, Lost, Awarded" />
         <Field label="Reason" value={values.reason} onChange={value => update("reason", value)} />
         <Field label="Qualification notes" value={values.qualificationNotes} onChange={value => update("qualificationNotes", value)} />
-        <label><span className="mb-1.5 block text-[11px] font-semibold text-[var(--muted)]">Specialist validation</span><select value={values.specialistValidation} onChange={event => update("specialistValidation", event.target.value)} className="h-10 w-full rounded-xl border bg-[var(--panel)] px-3 text-sm outline-none focus:border-teal-500"><option>Pending</option><option>Validated</option><option>Rejected</option></select></label>
+        <label><span className="mb-1.5 block text-[11px] font-semibold text-[var(--muted)]">Specialist validation</span><select value={values.specialistValidation} onChange={event => update("specialistValidation", event.target.value)} className="h-10 w-full rounded-xl border bg-[var(--panel)] px-3 text-sm outline-none focus:border-medtech-red"><option>Pending</option><option>Validated</option><option>Rejected</option></select></label>
         <Field label="Contract number" value={values.contractNumber} onChange={value => update("contractNumber", value)} />
         <Field label="Principal" value={values.principal} onChange={value => update("principal", value)} />
         <Field label="Tender number" value={values.tenderNumber} onChange={value => update("tenderNumber", value)} />
@@ -351,13 +351,14 @@ function InfoRows({ rows }: { rows: Array<[string, string]> }) {
 }
 
 function Field({ label, value, onChange, type = "text", placeholder }: { label: string; value: string; onChange: (value: string) => void; type?: string; placeholder?: string }) {
-  return <label><span className="mb-1.5 block text-[11px] font-semibold text-[var(--muted)]">{label}</span><input type={type} value={value} onChange={event => onChange(event.target.value)} placeholder={placeholder} className="h-10 w-full rounded-xl border bg-[var(--panel)] px-3 text-sm outline-none focus:border-teal-500" /></label>;
+  return <label><span className="mb-1.5 block text-[11px] font-semibold text-[var(--muted)]">{label}</span><input type={type} value={value} onChange={event => onChange(event.target.value)} placeholder={placeholder} className="h-10 w-full rounded-xl border bg-[var(--panel)] px-3 text-sm outline-none focus:border-medtech-red" /></label>;
 }
 
 function TextField({ label, value, onChange, className }: { label: string; value: string; onChange: (value: string) => void; className?: string }) {
-  return <label className={className}><span className="mb-1.5 block text-[11px] font-semibold text-[var(--muted)]">{label}</span><textarea value={value} onChange={event => onChange(event.target.value)} className="min-h-24 w-full rounded-xl border bg-[var(--panel)] px-3 py-2 text-sm outline-none focus:border-teal-500" /></label>;
+  return <label className={className}><span className="mb-1.5 block text-[11px] font-semibold text-[var(--muted)]">{label}</span><textarea value={value} onChange={event => onChange(event.target.value)} className="min-h-24 w-full rounded-xl border bg-[var(--panel)] px-3 py-2 text-sm outline-none focus:border-medtech-red" /></label>;
 }
 
 function formatMoney(value: number) {
   return `QAR ${Math.round(value).toLocaleString("en-US")}`;
 }
+
