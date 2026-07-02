@@ -55,7 +55,7 @@ export function IntegrationSimulatorsWorkspace() {
   };
 
   return <div className="space-y-5">
-    <div className="rounded-2xl border border-teal-200 bg-teal-50 p-4 text-teal-950 dark:border-teal-900 dark:bg-teal-950/30 dark:text-teal-100">
+    <div className="rounded-2xl border border-medtech-navy/20 bg-[var(--navy-tint)] p-4 text-medtech-deep dark:border-medtech-navy/50 dark:bg-[var(--elevated)] dark:text-red-100">
       <div className="flex flex-wrap items-center gap-2 text-xs font-bold uppercase tracking-[.14em]"><ShieldCheck className="h-4 w-4" /> Local Demo Only</div>
       <p className="mt-2 text-sm">These simulators only read browser files, write local demo records, and audit the action. No API keys, service clients, webhooks, or network calls are used.</p>
     </div>
@@ -64,7 +64,7 @@ export function IntegrationSimulatorsWorkspace() {
       <div className="overflow-hidden rounded-2xl border bg-[var(--panel)] shadow-soft">
         <div className="border-b px-4 py-3 text-xs font-bold">Simulator screens</div>
         <div className="max-h-[680px] overflow-y-auto p-2">
-          {simulatorConfigs.map(item => <button key={item.id} onClick={() => open(item.id)} className={cn("mb-1 w-full rounded-xl px-3 py-3 text-left transition hover:bg-slate-50 dark:hover:bg-slate-800", activeId === item.id && "bg-teal-50 text-teal-800 ring-1 ring-teal-200 dark:bg-teal-950/30 dark:text-teal-100 dark:ring-teal-900")}>
+          {simulatorConfigs.map(item => <button key={item.id} onClick={() => open(item.id)} className={cn("mb-1 w-full rounded-xl px-3 py-3 text-left transition hover:bg-slate-50 dark:hover:bg-slate-800", activeId === item.id && "bg-[var(--navy-tint)] text-medtech-navy ring-1 ring-medtech-navy/20 dark:bg-[var(--elevated)] dark:text-red-100 dark:ring-medtech-navy/50")}>
             <div className="flex items-center gap-2"><span className="text-xs font-bold">{item.title}</span><span className="ml-auto rounded-full bg-slate-100 px-2 py-0.5 text-[9px] font-bold text-slate-500 dark:bg-slate-800">Local Demo Only</span></div>
             <div className="mt-1 text-[11px] text-[var(--muted)]">{item.output}</div>
           </button>)}
@@ -89,7 +89,7 @@ export function IntegrationSimulatorsWorkspace() {
         <div className="grid gap-4 p-5 lg:grid-cols-[1fr_320px]">
           <label className="block">
             <span className="mb-2 block text-[10px] font-bold uppercase tracking-wide text-slate-400">Manual input or pasted CSV</span>
-            <textarea value={input} onChange={event => setInput(event.target.value)} className="h-[230px] w-full resize-y rounded-xl border bg-[var(--panel)] p-3 font-mono text-xs outline-none focus:border-teal-500" spellCheck={false} />
+            <textarea value={input} onChange={event => setInput(event.target.value)} className="h-[230px] w-full resize-y rounded-xl border bg-[var(--panel)] p-3 font-mono text-xs outline-none focus:border-medtech-red" spellCheck={false} />
           </label>
           <div className="rounded-xl border bg-slate-50 p-4 text-xs dark:bg-slate-900/40">
             <div className="font-bold">Validation</div>
@@ -110,7 +110,7 @@ export function IntegrationSimulatorsWorkspace() {
 
         {xmlPreview && <div className="border-b px-5 py-4">
           <div className="mb-2 flex items-center justify-between"><div className="text-xs font-bold">XML preview</div><Button variant="ghost" onClick={() => downloadText(xmlPreview, "local-demo-e-invoice.xml")}><Download className="h-4 w-4" /> XML</Button></div>
-          <pre className="max-h-[260px] overflow-auto rounded-xl border bg-slate-950 p-4 text-xs text-teal-100">{xmlPreview}</pre>
+          <pre className="max-h-[260px] overflow-auto rounded-xl border bg-slate-950 p-4 text-xs text-slate-100">{xmlPreview}</pre>
         </div>}
 
         <div className="overflow-x-auto">
@@ -121,7 +121,7 @@ export function IntegrationSimulatorsWorkspace() {
         </div>
       </div>
     </section>
-    {toast && <div role="status" className="fixed bottom-5 right-5 z-[100] flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-xs font-medium text-white shadow-panel animate-in"><CheckCircle2 className="h-4 w-4 text-teal-400" />{toast}</div>}
+    {toast && <div role="status" className="fixed bottom-5 right-5 z-[100] flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-xs font-medium text-white shadow-panel animate-in"><CheckCircle2 className="h-4 w-4 text-red-300" />{toast}</div>}
   </div>;
 }
 
@@ -150,3 +150,4 @@ function downloadText(text: string, filename: string) {
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   appendAuditLog({ action: "EXPORT XML", module: "Local Integration Simulators", record: filename, details: "Local Demo Only XML preview downloaded. External calls: 0." });
 }
+
