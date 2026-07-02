@@ -29,8 +29,8 @@ export async function generateBrandedPdf(data: PdfData, output: "save" | "blob" 
     const specialFilename = `${safeFileName(`${data.documentNumber}-${data.template}`)}.pdf`;
     if (output === "blob") return doc.output("blob"); doc.save(specialFilename); return specialFilename;
   }
-  const teal: [number,number,number] = [15,118,110], ink: [number,number,number] = [24,34,47];
-  doc.setFillColor(...ink); doc.rect(0, 0, 210, 29, "F"); doc.setFillColor(...teal); doc.rect(0, 29, 210, 2, "F");
+  const navy: [number,number,number] = [36,49,104], red: [number,number,number] = [237,30,54], ink: [number,number,number] = [15,23,42];
+  doc.setFillColor(...navy); doc.rect(0, 0, 210, 29, "F"); doc.setFillColor(...red); doc.rect(0, 29, 210, 2, "F");
   doc.setTextColor(255,255,255); doc.setFont("helvetica","bold"); doc.setFontSize(16); doc.text("MEDTECH", 16, 13);
   doc.setFont("helvetica","normal"); doc.setFontSize(7.5); doc.text("CORPORATION TRADING W.L.L.", 16, 18); doc.text("Healthcare Solutions & Medical Equipment", 16, 23);
   doc.setFont("helvetica","bold"); doc.setFontSize(13); doc.text(titles[data.template], 194, 16, { align: "right" });
@@ -40,21 +40,21 @@ export async function generateBrandedPdf(data: PdfData, output: "save" | "blob" 
   doc.setFont("helvetica","normal"); doc.setFontSize(8); if (data.partyAddress) doc.text(data.partyAddress, 19, 69, { maxWidth: 90 });
   let y = 81;
   if (data.subject) { doc.setFont("helvetica","bold"); doc.setFontSize(9); doc.text(`Subject: ${data.subject}`, 14, y); y += 8; }
-  if (data.metadata?.length) { autoTable(doc, { startY: y, head: [], body: data.metadata, theme: "plain", styles: { fontSize: 8, cellPadding: 2 }, columnStyles: { 0: { fontStyle: "bold", textColor: teal, cellWidth: 42 } } }); y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 6; }
+  if (data.metadata?.length) { autoTable(doc, { startY: y, head: [], body: data.metadata, theme: "plain", styles: { fontSize: 8, cellPadding: 2 }, columnStyles: { 0: { fontStyle: "bold", textColor: navy, cellWidth: 42 } } }); y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 6; }
   if (data.lines?.length) {
     autoTable(doc, {
       startY: y,
       head: [["#", "Code / Description", "Qty", "Unit Price", "Disc.", "Total"]],
       body: data.lines.map((line, i) => [i + 1, `${line.code ? line.code + "\n" : ""}${line.description}`, `${line.quantity} ${line.unit ?? ""}`, amount(line.unitPrice, data.currency), line.discount ? `${line.discount}%` : "—", amount(line.total, data.currency)]),
       theme: "striped",
-      headStyles: { fillColor: teal, textColor: 255, fontStyle: "bold", fontSize: 7.5 },
+      headStyles: { fillColor: navy, textColor: 255, fontStyle: "bold", fontSize: 7.5 },
       styles: { fontSize: 7.5, cellPadding: 3, textColor: ink },
       alternateRowStyles: { fillColor: [247, 250, 251] },
       columnStyles: { 0: { cellWidth: 8 }, 2: { halign: "right", cellWidth: 20 }, 3: { halign: "right", cellWidth: 28 }, 4: { halign: "right", cellWidth: 17 }, 5: { halign: "right", cellWidth: 30, fontStyle: "bold" } }
     });
     y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 5;
     const totals = [["Subtotal", amount(data.subtotal ?? 0,data.currency)], ...(data.discount ? [["Discount", amount(data.discount,data.currency)]] : []), ...(data.tax ? [["Tax", amount(data.tax,data.currency)]] : []), ["TOTAL", amount(data.total ?? 0,data.currency)]];
-    autoTable(doc, { startY: y, body: totals, theme: "plain", tableWidth: 72, margin: { left: 124 }, styles: { fontSize: 8, cellPadding: 2, halign: "right" }, columnStyles: { 1: { fontStyle: "bold", textColor: teal } }, didParseCell: hook => { if (hook.row.index === totals.length - 1) { hook.cell.styles.fontSize = 10; hook.cell.styles.fillColor = [236,253,248]; } } });
+    autoTable(doc, { startY: y, body: totals, theme: "plain", tableWidth: 72, margin: { left: 124 }, styles: { fontSize: 8, cellPadding: 2, halign: "right" }, columnStyles: { 1: { fontStyle: "bold", textColor: red } }, didParseCell: hook => { if (hook.row.index === totals.length - 1) { hook.cell.styles.fontSize = 10; hook.cell.styles.fillColor = [255,232,236]; } } });
     y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8;
   }
   if (data.notes) { doc.setFontSize(8); doc.setFont("helvetica","normal"); doc.setTextColor(...ink); doc.text(data.notes, 14, y, { maxWidth: 180 }); y += 14; }
@@ -267,7 +267,7 @@ function renderApprovalToHire(doc: PdfDocument, autoTable: AutoTableFunction, da
 }
 
 function renderHiringApproval(doc: PdfDocument, autoTable: AutoTableFunction, data: PdfData) {
-  const teal: [number, number, number] = [15, 118, 110];
+  const navy: [number, number, number] = [36, 49, 104];
   const ink: [number, number, number] = [35, 45, 61];
   const meta = metadataMap(data);
   brandedHeader(doc, "HIRING APPROVAL REQUEST", data.documentNumber, data.date);
@@ -281,16 +281,16 @@ function renderHiringApproval(doc: PdfDocument, autoTable: AutoTableFunction, da
   ];
   let y = 55;
   for (const [title, rows] of sections) {
-    autoTable(doc, { startY: y, head: [[{ content: title, colSpan: 2 }]], body: rows, theme: "grid", styles: { fontSize: 7.5, cellPadding: 2, lineColor: [215, 226, 230], textColor: ink }, headStyles: { fillColor: teal, textColor: 255, fontStyle: "bold" }, columnStyles: { 0: { cellWidth: 52, fontStyle: "bold", fillColor: [244, 249, 249] }, 1: { cellWidth: 129.78 } } });
+    autoTable(doc, { startY: y, head: [[{ content: title, colSpan: 2 }]], body: rows, theme: "grid", styles: { fontSize: 7.5, cellPadding: 2, lineColor: [215, 226, 230], textColor: ink }, headStyles: { fillColor: navy, textColor: 255, fontStyle: "bold" }, columnStyles: { 0: { cellWidth: 52, fontStyle: "bold", fillColor: [248, 250, 252] }, 1: { cellWidth: 129.78 } } });
     y = lastTableY(doc) + 3;
   }
   if (y > 220) { doc.addPage(); y = 22; }
-  autoTable(doc, { startY: y, head: [[{ content: "5. APPROVALS REQUIRED", colSpan: 2 }]], body: [["Hiring Manager", "Name: ____________________  Signature: ____________________  Date: __________"], ["Department Head", "Name: ____________________  Signature: ____________________  Date: __________"], ["HR Manager", "Name: ____________________  Signature: ____________________  Date: __________"], ["Finance Approval", "Name: ____________________  Signature: ____________________  Date: __________"], ["Executive Approval", "Name: ____________________  Signature: ____________________  Date: __________"]], theme: "grid", styles: { fontSize: 7.5, cellPadding: 2.5, lineColor: [215, 226, 230] }, headStyles: { fillColor: teal, textColor: 255 }, columnStyles: { 0: { cellWidth: 45, fontStyle: "bold" }, 1: { cellWidth: 136.78 } } });
+  autoTable(doc, { startY: y, head: [[{ content: "5. APPROVALS REQUIRED", colSpan: 2 }]], body: [["Hiring Manager", "Name: ____________________  Signature: ____________________  Date: __________"], ["Department Head", "Name: ____________________  Signature: ____________________  Date: __________"], ["HR Manager", "Name: ____________________  Signature: ____________________  Date: __________"], ["Finance Approval", "Name: ____________________  Signature: ____________________  Date: __________"], ["Executive Approval", "Name: ____________________  Signature: ____________________  Date: __________"]], theme: "grid", styles: { fontSize: 7.5, cellPadding: 2.5, lineColor: [215, 226, 230] }, headStyles: { fillColor: navy, textColor: 255 }, columnStyles: { 0: { cellWidth: 45, fontStyle: "bold" }, 1: { cellWidth: 136.78 } } });
   addHrFooters(doc, "MTECH-HR-RF-027 Hiring Approval Document");
 }
 
 function renderOfferLetter(doc: PdfDocument, autoTable: AutoTableFunction, data: PdfData) {
-  const teal: [number, number, number] = [15, 118, 110];
+  const navy: [number, number, number] = [36, 49, 104];
   const ink: [number, number, number] = [35, 45, 61];
   const meta = metadataMap(data);
   const candidate = meta.get("Candidate") || data.partyName;
@@ -301,13 +301,13 @@ function renderOfferLetter(doc: PdfDocument, autoTable: AutoTableFunction, data:
   doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.setTextColor(...ink); doc.text("STRICTLY PRIVATE & CONFIDENTIAL", 14, y); y += 8;
   doc.setFont("helvetica", "normal"); doc.text(candidate, 14, y); y += 5; doc.text("Doha, State of Qatar", 14, y); y += 10;
   y = pdfParagraph(doc, "We are delighted to extend our offer of employment with MedTech Corporation Trading W.L.L. This offer is subject to compliance with Qatar immigration and employment requirements.", y, ink);
-  y = pdfSection(doc, "1. DATE OF COMMENCEMENT", y, teal);
+  y = pdfSection(doc, "1. DATE OF COMMENCEMENT", y, navy);
   y = pdfParagraph(doc, `This Contract of Employment will come into effect from ${startDate}.`, y, ink);
-  y = pdfSection(doc, "2. JOB DETAILS", y, teal);
-  autoTable(doc, { startY: y, body: [["Job Title", position], ["Employee Group", meta.get("Employee Group") || "Staff"], ["Department", meta.get("Department") || "-"], ["Work Location", "Doha, Qatar"]], theme: "grid", styles: { fontSize: 8, cellPadding: 2, lineColor: [215, 226, 230] }, columnStyles: { 0: { cellWidth: 48, fontStyle: "bold", fillColor: [244, 249, 249] }, 1: { cellWidth: 133.78 } } }); y = lastTableY(doc) + 5;
-  y = pdfSection(doc, "3. CONTRACTUAL PAY", y, teal);
+  y = pdfSection(doc, "2. JOB DETAILS", y, navy);
+  autoTable(doc, { startY: y, body: [["Job Title", position], ["Employee Group", meta.get("Employee Group") || "Staff"], ["Department", meta.get("Department") || "-"], ["Work Location", "Doha, Qatar"]], theme: "grid", styles: { fontSize: 8, cellPadding: 2, lineColor: [215, 226, 230] }, columnStyles: { 0: { cellWidth: 48, fontStyle: "bold", fillColor: [248, 250, 252] }, 1: { cellWidth: 133.78 } } }); y = lastTableY(doc) + 5;
+  y = pdfSection(doc, "3. CONTRACTUAL PAY", y, navy);
   y = pdfParagraph(doc, "Contractual pay consists of Basic Salary and approved allowances. Gratuity will be calculated in accordance with Qatar Labour Law and company policy.", y, ink);
-  autoTable(doc, { startY: y, head: [["Component", "Monthly Amount"]], body: [["Basic Salary", meta.get("Basic Salary") || meta.get("Offered salary") || "To be confirmed"], ["HRA", meta.get("HRA") || "Included / as agreed"], ["Transportation", meta.get("Transportation") || "Included / as agreed"], ["Total Contractual Pay", meta.get("Total package") || meta.get("Offered salary") || "To be confirmed"]], theme: "grid", styles: { fontSize: 8, cellPadding: 2 }, headStyles: { fillColor: teal, textColor: 255 }, columnStyles: { 0: { cellWidth: 100 }, 1: { cellWidth: 81.78, halign: "right", fontStyle: "bold" } } }); y = lastTableY(doc) + 5;
+  autoTable(doc, { startY: y, head: [["Component", "Monthly Amount"]], body: [["Basic Salary", meta.get("Basic Salary") || meta.get("Offered salary") || "To be confirmed"], ["HRA", meta.get("HRA") || "Included / as agreed"], ["Transportation", meta.get("Transportation") || "Included / as agreed"], ["Total Contractual Pay", meta.get("Total package") || meta.get("Offered salary") || "To be confirmed"]], theme: "grid", styles: { fontSize: 8, cellPadding: 2 }, headStyles: { fillColor: navy, textColor: 255 }, columnStyles: { 0: { cellWidth: 100 }, 1: { cellWidth: 81.78, halign: "right", fontStyle: "bold" } } }); y = lastTableY(doc) + 5;
   const sections: Array<[string, string]> = [
     ["4. VARIABLE PAY", "Subject to company discretion and applicable schemes, you may be eligible for bonus or incentive based on company, business-unit and individual performance."],
     ["5. BENEFITS", "Medical benefits, financial facilities and leave benefits will be provided under company policy. Annual leave entitlement is 30 calendar days per completed year, with sick, compassionate, maternity and public-holiday leave applied in accordance with Qatar Labour Law and company policy."],
@@ -317,7 +317,7 @@ function renderOfferLetter(doc: PdfDocument, autoTable: AutoTableFunction, data:
     ["9. END OF SERVICE BENEFITS", "After completing the qualifying service period, end-of-service gratuity will be calculated in accordance with Qatar Labour Law using the applicable basic salary and completed service period. Any amounts due to the company may be deducted where legally permitted."],
     ["10. CONTRACT ACCEPTANCE", "By accepting this offer, you agree to comply with the laws of Qatar and MedTech policies. Please sign and return this letter within the validity period stated in the offer record."]
   ];
-  for (const [title, paragraph] of sections) { y = pdfSection(doc, title, y, teal); y = pdfParagraph(doc, paragraph, y, ink); }
+  for (const [title, paragraph] of sections) { y = pdfSection(doc, title, y, navy); y = pdfParagraph(doc, paragraph, y, ink); }
   if (y > 245) { doc.addPage(); y = 36; }
   doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(...ink); doc.text("Yours sincerely,", 14, y); doc.text("I accept the above terms and conditions", 112, y); y += 18;
   doc.line(14, y, 82, y); doc.line(112, y, 196, y); doc.setFontSize(7); doc.text(data.approvedBy || "Chief Operating Officer", 14, y + 5); doc.text(`${candidate} - Signature / Date`, 112, y + 5);
