@@ -5,48 +5,177 @@
 :root {
   color-scheme: light;
   --brand-red: #ED1E36;
+  --brand-red-hover: #C9182E;
   --corporate-navy: #243168;
   --deep-navy: #1B1F3D;
   --purple: #592C5A;
   --magenta: #B22541;
   --dark-rose: #8B274B;
-  --page: #F8FAFC;
+  --app-bg: #F6F8FC;
+  --main-bg: #F8FAFC;
+  --sidebar: #FFFFFF;
+  --sidebar-end: #FFFFFF;
+  --sidebar-text: #334155;
+  --sidebar-muted: #64748B;
+  --sidebar-heading: #94A3B8;
+  --sidebar-hover: #F8FAFC;
+  --sidebar-active: #EEF2FF;
+  --sidebar-active-text: #243168;
+  --sidebar-border: #E2E8F0;
+  --header: rgb(255 255 255 / .92);
   --panel: #FFFFFF;
-  --elevated: #F1F5F9;
+  --panel-start: #FFFFFF;
+  --panel-end: #F8FAFC;
+  --elevated: #F8FAFC;
+  --input-bg: #FFFFFF;
+  --input-border: #CBD5E1;
+  --input-disabled: #F1F5F9;
+  --table-head-start: #F8FAFC;
+  --table-head-end: #F8FAFC;
+  --table-head-text: #475569;
+  --table-row-border: #EEF2F7;
+  --table-hover: #F8FAFC;
   --text: #0F172A;
   --text-secondary: #334155;
   --muted: #64748B;
-  --line: #E5E7EB;
-  --line-soft: #EEF2F7;
+  --muted-soft: #94A3B8;
+  --line: #E2E8F0;
+  --line-soft: #E2E8F0;
   --navy-tint: #EEF2FF;
   --red-tint: #FFE8EC;
-  --focus-ring: rgb(237 30 54 / .16);
+  --blue-tint: #EFF6FF;
+  --success-tint: #ECFDF5;
+  --warning-tint: #FFFBEB;
+  --focus-ring: rgb(36 49 104 / .16);
+  --surface-glow: 0 10px 28px rgb(15 23 42 / .06), inset 0 1px 0 rgb(255 255 255 / .82);
+  --shell-shadow: 0 14px 34px rgb(15 23 42 / .10);
+  --overlay-bg: rgb(15 23 42 / .36);
+  --body-bg: radial-gradient(circle at 22% 0%, rgb(238 242 255 / .95), transparent 34rem), linear-gradient(135deg, #F6F8FC 0%, #F8FAFC 52%, #EEF2FF 100%);
+  --badge-success-bg: #ECFDF5;
+  --badge-success-text: #047857;
+  --badge-success-ring: rgb(4 120 87 / .18);
+  --badge-warning-bg: #FFFBEB;
+  --badge-warning-text: #B45309;
+  --badge-warning-ring: rgb(180 83 9 / .20);
+  --badge-danger-bg: #FFE8EC;
+  --badge-danger-text: #C9182E;
+  --badge-danger-ring: rgb(237 30 54 / .22);
+  --badge-info-bg: #EFF6FF;
+  --badge-info-text: #243168;
+  --badge-info-ring: rgb(36 49 104 / .16);
+  --badge-neutral-bg: #F1F5F9;
+  --badge-neutral-text: #334155;
+  --badge-neutral-ring: rgb(100 116 139 / .18);
+  --nav-badge-bg: #F1F5F9;
+  --nav-badge-text: #334155;
+  --dashboard-chart: #243168;
+  --dashboard-chart-fill: #243168;
+  --dashboard-chart-fill-opacity: .16;
+  --dashboard-stock-healthy: #243168;
+  --page: var(--app-bg);
 }
 .dark {
   color-scheme: dark;
-  --page: #0B1020;
-  --sidebar: #111936;
-  --panel: #151D3A;
-  --elevated: #1B2550;
+  --brand-red-hover: #C9182E;
+  --corporate-navy: #38BDF8;
+  --deep-navy: #070D1A;
+  --purple: #7C8FF7;
+  --magenta: #ED1E36;
+  --dark-rose: #C9182E;
+  --app-bg: #070D1A;
+  --main-bg: #0B1020;
+  --page: var(--app-bg);
+  --sidebar: #081426;
+  --sidebar-end: #071120;
+  --sidebar-text: #CBD5E1;
+  --sidebar-muted: #8EA0C4;
+  --sidebar-heading: #8EA0C4;
+  --sidebar-hover: rgb(255 255 255 / .055);
+  --sidebar-active: #162542;
+  --sidebar-active-text: #FFFFFF;
+  --sidebar-border: rgb(56 76 120 / .72);
+  --header: #0C1830;
+  --panel: #101A32;
+  --panel-start: #12213D;
+  --panel-end: #0E172C;
+  --elevated: #162542;
+  --input-bg: rgb(16 26 50 / .94);
+  --input-border: rgb(56 76 120 / .72);
+  --input-disabled: rgb(8 20 38 / .78);
+  --table-head-start: rgb(22 37 66 / .92);
+  --table-head-end: rgb(16 26 50 / .92);
+  --table-head-text: #8EA0C4;
+  --table-row-border: rgb(56 76 120 / .72);
+  --table-hover: rgb(56 189 248 / .07);
   --text: #F8FAFC;
-  --text-secondary: #D6DDF5;
-  --muted: #AAB4D4;
-  --line: #2A3563;
-  --line-soft: #22305C;
-  --navy-tint: #1B2550;
+  --text-secondary: #CBD5E1;
+  --muted: #8EA0C4;
+  --muted-soft: #8EA0C4;
+  --line: #263A63;
+  --line-soft: rgb(56 76 120 / .72);
+  --navy-tint: rgb(56 189 248 / .10);
   --red-tint: rgb(237 30 54 / .14);
-  --focus-ring: rgb(237 30 54 / .24);
+  --blue-tint: rgb(56 189 248 / .10);
+  --success-tint: rgb(52 211 153 / .10);
+  --warning-tint: rgb(251 191 36 / .10);
+  --focus-ring: rgb(237 30 54 / .30);
+  --surface-glow: 0 18px 55px rgb(0 0 0 / .28), inset 0 1px 0 rgb(255 255 255 / .04);
+  --shell-shadow: 0 8px 26px rgb(0 0 0 / .22);
+  --overlay-bg: rgb(7 13 26 / .72);
+  --body-bg: radial-gradient(circle at 22% 0%, rgb(18 44 80 / .50), transparent 34rem), linear-gradient(135deg, #070D1A 0%, #0B1020 48%, #070D1A 100%);
+  --badge-success-bg: rgb(52 211 153 / .10);
+  --badge-success-text: #6EE7B7;
+  --badge-success-ring: rgb(52 211 153 / .20);
+  --badge-warning-bg: rgb(251 191 36 / .10);
+  --badge-warning-text: #FCD34D;
+  --badge-warning-ring: rgb(251 191 36 / .20);
+  --badge-danger-bg: rgb(251 113 133 / .12);
+  --badge-danger-text: #FDA4AF;
+  --badge-danger-ring: rgb(251 113 133 / .25);
+  --badge-info-bg: rgb(56 189 248 / .10);
+  --badge-info-text: #BAE6FD;
+  --badge-info-ring: rgb(56 189 248 / .20);
+  --badge-neutral-bg: #162542;
+  --badge-neutral-text: #CBD5E1;
+  --badge-neutral-ring: rgb(56 76 120 / .72);
+  --nav-badge-bg: var(--brand-red);
+  --nav-badge-text: #FFFFFF;
+  --dashboard-chart: #38BDF8;
+  --dashboard-chart-fill: #38BDF8;
+  --dashboard-chart-fill-opacity: .22;
+  --dashboard-stock-healthy: #38BDF8;
 }
 * { border-color: var(--line); }
 html { background: var(--page); text-rendering: optimizeLegibility; }
-body { margin: 0; overflow-x: hidden; background: var(--page); color: var(--text); font-family: Inter, "Segoe UI", Arial, sans-serif; font-size: 14px; line-height: 1.45; -webkit-font-smoothing: antialiased; }
+body { margin: 0; overflow-x: hidden; background: var(--body-bg); color: var(--text); font-family: Inter, "Segoe UI", Arial, sans-serif; font-size: 14px; line-height: 1.45; -webkit-font-smoothing: antialiased; }
 button, input, select, textarea { font: inherit; }
 button, a, input, select, textarea { outline-color: var(--brand-red); }
-::selection { background: var(--red-tint); color: var(--deep-navy); }
+input, select, textarea { color: var(--text); }
+input:not([type="checkbox"]):not([type="radio"]), select, textarea { background-color: var(--panel); border-color: var(--line); }
+input::placeholder, textarea::placeholder { color: var(--muted-soft); }
+::selection { background: var(--brand-red); color: white; }
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #CBD5E1; border: 2px solid var(--page); border-radius: 99px; }
-.dark ::-webkit-scrollbar-thumb { background: #3E4A78; }
+::-webkit-scrollbar-thumb { background: var(--line); border: 2px solid var(--page); border-radius: 99px; }
+.dark ::-webkit-scrollbar-thumb { background: #385078; }
+table { color: var(--text); background-color: var(--panel); }
+thead tr { background-color: var(--table-head-end); }
+tbody { border-color: var(--table-row-border); }
+table[class] { color: var(--text); background-color: var(--panel); }
+table thead tr[class] { background: var(--table-head-end); border-color: var(--table-row-border); }
+table th[class], table th[class] button { color: var(--table-head-text); }
+table tbody[class], table tbody[class] tr[class] { border-color: var(--table-row-border); }
+table tbody tr[class] { color: var(--text); }
+table tbody tr[class]:hover { background-color: var(--table-hover); }
+table tbody tr[class*="bg-"] { border-color: var(--table-row-border); }
+table td[class] { border-color: var(--table-row-border); }
+input[class]:not([type="checkbox"]):not([type="radio"]), select[class], textarea[class] { background-color: var(--input-bg); border-color: var(--input-border); color: var(--text); }
+input[class]:not([type="checkbox"]):not([type="radio"]):focus, select[class]:focus, textarea[class]:focus { border-color: var(--corporate-navy); box-shadow: 0 0 0 3px var(--focus-ring); }
+.dark input[class]:not([type="checkbox"]):not([type="radio"]):focus, .dark select[class]:focus, .dark textarea[class]:focus { border-color: var(--brand-red); }
+input[class]:disabled, select[class]:disabled, textarea[class]:disabled { background-color: var(--input-disabled); color: var(--muted); opacity: .72; }
+option { background-color: var(--panel); color: var(--text); }
+datalist { background-color: var(--panel); color: var(--text); }
+.divide-y > :not([hidden]) ~ :not([hidden]) { border-color: var(--line-soft); }
 .tabular { font-variant-numeric: tabular-nums; }
 .animate-in { animation: enter .28s ease-out both; }
 @keyframes enter { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
