@@ -1,38 +1,149 @@
 "use client";
 
+import { useEffect, useRef, useState, type ButtonHTMLAttributes, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { statusTone } from "@/lib/local-erp-foundation";
-import { ChevronDown, Search, SlidersHorizontal } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ChevronDown, Loader2, MoreHorizontal, Search, SlidersHorizontal, XCircle } from "lucide-react";
 
-export function Button({ children, variant = "primary", className, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "secondary" | "ghost" | "danger" }) {
+type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+  variant?: "primary" | "secondary" | "ghost" | "danger";
+  size?: "sm" | "md";
+};
+
+export function Button({ children, variant = "primary", size = "md", className, ...props }: ButtonProps) {
   const variants = {
-    primary: "bg-teal-600 text-white hover:bg-teal-700 shadow-sm",
-    secondary: "bg-[var(--panel)] text-[var(--text)] border hover:bg-slate-50 dark:hover:bg-slate-800",
-    ghost: "text-[var(--muted)] hover:text-[var(--text)] hover:bg-slate-100 dark:hover:bg-slate-800",
+    primary: "bg-[var(--brand-red)] text-white hover:bg-[#C9162C]",
+    secondary: "border bg-[var(--panel)] text-[var(--text)] hover:border-medtech-navy/25 hover:bg-[var(--elevated)] dark:hover:bg-[var(--elevated)]",
+    ghost: "text-[var(--muted)] hover:bg-[var(--elevated)] hover:text-[var(--text)]",
     danger: "bg-rose-600 text-white hover:bg-rose-700"
   };
-  return <button className={cn("inline-flex h-9 items-center justify-center gap-2 rounded-lg px-3.5 text-sm font-semibold transition disabled:opacity-50", variants[variant], className)} {...props}>{children}</button>;
+  const sizes = { sm: "h-8 px-2.5 text-xs", md: "h-9 px-3.5 text-sm" };
+  return <button className={cn("inline-flex items-center justify-center gap-2 rounded-lg font-semibold transition focus-visible:outline-none focus-visible:shadow-focus disabled:pointer-events-none disabled:opacity-50", sizes[size], variants[variant], className)} {...props}>{children}</button>;
 }
 
-export function StatusBadge({ children }: { children: React.ReactNode }) {
-  const value = String(children).toLowerCase();
-  const palette = {
-    success: "bg-emerald-50 text-emerald-700 ring-emerald-600/20 dark:bg-emerald-950/50 dark:text-emerald-300",
-    warning: "bg-amber-50 text-amber-700 ring-amber-600/20 dark:bg-amber-950/50 dark:text-amber-300",
-    danger: "bg-rose-50 text-rose-700 ring-rose-600/20 dark:bg-rose-950/50 dark:text-rose-300",
-    info: "bg-blue-50 text-blue-700 ring-blue-600/20 dark:bg-blue-950/50 dark:text-blue-300"
-  };
-  const tone = palette[statusTone(value)];
-  return <span className={cn("inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ring-inset", tone)}><span className="h-1.5 w-1.5 rounded-full bg-current opacity-75" />{children}</span>;
-}
-
-export function DataToolbar({ placeholder = "Search records..." }: { placeholder?: string }) {
-  return <div className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-3.5">
-    <div className="relative min-w-[220px] flex-1 md:max-w-sm"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input className="h-9 w-full rounded-lg border bg-[var(--panel)] pl-9 pr-3 text-sm outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-500/10" placeholder={placeholder} /></div>
-    <div className="flex items-center gap-2"><Button variant="secondary"><SlidersHorizontal className="h-4 w-4" /> Filters</Button><Button variant="secondary">This month <ChevronDown className="h-4 w-4" /></Button></div>
+export function PageHeader({ title, description, eyebrow, icon, actions, className }: { title: string; description?: string; eyebrow?: string; icon?: ReactNode; actions?: ReactNode; className?: string }) {
+  return <div className={cn("mb-6 flex flex-col justify-between gap-4 lg:flex-row lg:items-end", className)}>
+    <div className="flex min-w-0 items-start gap-3.5">
+      {icon && <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-[var(--line-soft)] bg-[var(--navy-tint)] text-medtech-navy dark:text-white">{icon}</div>}
+      <div className="min-w-0">
+        {eyebrow && <div className="mb-1 text-[10px] font-bold uppercase tracking-[.14em] text-medtech-red">{eyebrow}</div>}
+        <h1 className="text-2xl font-bold tracking-tight text-[var(--text)] md:text-[28px]">{title}</h1>
+        {description && <p className="mt-1 max-w-3xl text-[13px] text-[var(--muted)]">{description}</p>}
+      </div>
+    </div>
+    {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
   </div>;
 }
 
-export function EmptyState({ title, description }: { title: string; description: string }) {
-  return <div className="flex min-h-64 flex-col items-center justify-center p-8 text-center"><div className="mb-4 rounded-2xl bg-slate-100 p-4 dark:bg-slate-800"><Search className="h-7 w-7 text-slate-400" /></div><h3 className="font-semibold">{title}</h3><p className="mt-1 max-w-sm text-sm text-[var(--muted)]">{description}</p></div>;
+export function SectionHeader({ title, description, actions, className }: { title: string; description?: string; actions?: ReactNode; className?: string }) {
+  return <div className={cn("flex items-start justify-between gap-3 border-b px-5 py-4", className)}>
+    <div><h2 className="text-sm font-bold text-[var(--text)]">{title}</h2>{description && <p className="mt-1 text-[11px] text-[var(--muted)]">{description}</p>}</div>
+    {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
+  </div>;
+}
+
+export function StatCard({ label, value, note, icon, tone = "navy" }: { label: string; value: ReactNode; note?: ReactNode; icon?: ReactNode; tone?: "navy" | "red" | "purple" | "success" | "warning" | "danger" }) {
+  const tones = {
+    navy: "bg-[var(--navy-tint)] text-medtech-navy dark:text-white",
+    red: "bg-[var(--red-tint)] text-medtech-red",
+    purple: "bg-purple-50 text-medtech-purple dark:bg-medtech-purple/25 dark:text-purple-200",
+    success: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300",
+    warning: "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300",
+    danger: "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300"
+  };
+  return <div className="rounded-2xl border border-[var(--line-soft)] bg-[var(--panel)] p-5 shadow-soft">
+    <div className="flex items-start justify-between gap-3"><div className="text-xs font-medium text-[var(--muted)]">{label}</div>{icon && <div className={cn("rounded-xl p-2.5", tones[tone])}>{icon}</div>}</div>
+    <div className="mt-3 text-2xl font-bold tracking-tight">{value}</div>
+    {note && <div className="mt-2 text-[11px] font-medium text-[var(--muted)]">{note}</div>}
+  </div>;
+}
+
+export function DataCard({ children, className }: { children: ReactNode; className?: string }) {
+  return <section className={cn("overflow-hidden rounded-2xl border border-[var(--line-soft)] bg-[var(--panel)] shadow-soft", className)}>{children}</section>;
+}
+
+export function FormSection({ title, description, children, className }: { title: string; description?: string; children: ReactNode; className?: string }) {
+  return <section className={cn("rounded-2xl border border-[var(--line-soft)] bg-[var(--panel)] p-5 shadow-soft", className)}>
+    <div className="mb-4"><h2 className="text-sm font-bold">{title}</h2>{description && <p className="mt-1 text-[11px] text-[var(--muted)]">{description}</p>}</div>
+    <div className="grid gap-4 sm:grid-cols-2">{children}</div>
+  </section>;
+}
+
+export function TableToolbar({ placeholder = "Search records...", children }: { placeholder?: string; children?: ReactNode }) {
+  return <div className="flex flex-wrap items-center justify-between gap-3 border-b bg-[var(--panel)] px-5 py-3.5">
+    <div className="relative min-w-[220px] flex-1 md:max-w-sm"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted)]" /><input className="h-9 w-full rounded-lg border bg-[var(--panel)] pl-9 pr-3 text-sm outline-none transition focus:border-medtech-red focus:ring-2 focus:ring-[var(--focus-ring)]" placeholder={placeholder} /></div>
+    <div className="flex flex-wrap items-center gap-2">{children ?? <><Button variant="secondary"><SlidersHorizontal className="h-4 w-4" /> Filters</Button><Button variant="secondary">This month <ChevronDown className="h-4 w-4" /></Button></>}</div>
+  </div>;
+}
+
+export const DataToolbar = TableToolbar;
+
+export function StatusBadge({ children, tone }: { children: ReactNode; tone?: "success" | "warning" | "danger" | "info" | "neutral" }) {
+  const value = String(children).toLowerCase();
+  const palette = {
+    success: "bg-emerald-50 text-emerald-700 ring-emerald-600/20 dark:bg-emerald-950/45 dark:text-emerald-300",
+    warning: "bg-amber-50 text-amber-700 ring-amber-600/20 dark:bg-amber-950/45 dark:text-amber-300",
+    danger: "bg-rose-50 text-rose-700 ring-rose-600/20 dark:bg-rose-950/45 dark:text-rose-300",
+    info: "bg-[var(--navy-tint)] text-medtech-navy ring-medtech-navy/15 dark:text-[var(--text-secondary)]",
+    neutral: "bg-[var(--elevated)] text-[var(--text-secondary)] ring-[var(--line)]"
+  };
+  const resolvedTone = tone ?? statusTone(value);
+  return <span className={cn("inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ring-inset", palette[resolvedTone])}><span className="h-1.5 w-1.5 rounded-full bg-current opacity-75" />{children}</span>;
+}
+
+export function EmptyState({ title, description, icon }: { title: string; description: string; icon?: ReactNode }) {
+  return <div className="flex min-h-64 flex-col items-center justify-center p-8 text-center"><div className="mb-4 rounded-2xl border border-[var(--line-soft)] bg-[var(--elevated)] p-4 text-[var(--muted)]">{icon ?? <Search className="h-7 w-7" />}</div><h3 className="font-semibold">{title}</h3><p className="mt-1 max-w-sm text-sm text-[var(--muted)]">{description}</p></div>;
+}
+
+export function LoadingState({ label = "Loading..." }: { label?: string }) {
+  return <div className="flex min-h-48 items-center justify-center gap-2 text-sm font-medium text-[var(--muted)]"><Loader2 className="h-4 w-4 animate-spin text-medtech-red" />{label}</div>;
+}
+
+export function ErrorState({ title = "Something went wrong", description, action }: { title?: string; description?: string; action?: ReactNode }) {
+  return <div role="alert" className="rounded-2xl border border-rose-200 bg-rose-50 p-5 text-rose-800 shadow-soft dark:border-rose-900/60 dark:bg-rose-950/30 dark:text-rose-200"><div className="flex gap-3"><XCircle className="mt-0.5 h-5 w-5 shrink-0" /><div><h3 className="font-semibold">{title}</h3>{description && <p className="mt-1 text-sm opacity-85">{description}</p>}{action && <div className="mt-4">{action}</div>}</div></div></div>;
+}
+
+export function ConfirmDialog({ open, title, description, confirmLabel = "Confirm", cancelLabel = "Cancel", tone = "danger", onConfirm, onCancel }: { open: boolean; title: string; description?: string; confirmLabel?: string; cancelLabel?: string; tone?: "danger" | "primary"; onConfirm: () => void; onCancel: () => void }) {
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onCancel();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open, onCancel]);
+
+  if (!open) return null;
+  return <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/50 px-4 backdrop-blur-sm" role="presentation" onMouseDown={onCancel}>
+    <div role="dialog" aria-modal="true" aria-label={title} onMouseDown={event => event.stopPropagation()} className="w-full max-w-md overflow-hidden rounded-2xl border bg-[var(--panel)] shadow-2xl animate-in">
+      <div className="flex gap-3 p-5"><div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[var(--red-tint)] text-medtech-red"><AlertTriangle className="h-5 w-5" /></div><div><h2 className="font-bold">{title}</h2>{description && <p className="mt-1 text-sm text-[var(--muted)]">{description}</p>}</div></div>
+      <div className="flex justify-end gap-2 border-t bg-[var(--elevated)] px-5 py-4"><Button variant="secondary" onClick={onCancel}>{cancelLabel}</Button><Button variant={tone === "danger" ? "danger" : "primary"} onClick={onConfirm}>{confirmLabel}</Button></div>
+    </div>
+  </div>;
+}
+
+export function ActionMenu({ actions, label = "Actions" }: { label?: string; actions: { label: string; icon?: ReactNode; disabled?: boolean; danger?: boolean; onClick: () => void }[] }) {
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    const onPointerDown = (event: PointerEvent) => {
+      if (!menuRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("pointerdown", onPointerDown);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("pointerdown", onPointerDown);
+    };
+  }, [open]);
+
+  return <div ref={menuRef} className="relative">
+    <button type="button" aria-label={label} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(value => !value)} className="inline-grid h-9 w-9 place-items-center rounded-lg border bg-[var(--panel)] text-[var(--muted)] transition hover:bg-[var(--elevated)] hover:text-[var(--text)] focus-visible:outline-none focus-visible:shadow-focus"><MoreHorizontal className="h-4 w-4" /></button>
+    {open && <div role="menu" className="absolute right-0 top-11 z-20 min-w-44 overflow-hidden rounded-xl border bg-[var(--panel)] p-1 shadow-panel animate-in">{actions.map(action => <button key={action.label} type="button" role="menuitem" disabled={action.disabled} onClick={() => { action.onClick(); setOpen(false); }} className={cn("flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-semibold hover:bg-[var(--elevated)] focus-visible:outline-none focus-visible:shadow-focus disabled:opacity-50", action.danger && "text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30")}>{action.icon ?? <CheckCircle2 className="h-3.5 w-3.5" />}{action.label}</button>)}</div>}
+  </div>;
 }
