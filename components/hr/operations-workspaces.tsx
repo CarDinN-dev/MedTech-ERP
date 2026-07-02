@@ -1,12 +1,13 @@
 "use client";
 
-import { Fragment, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, ArrowUpDown, Banknote, Calculator, CheckCircle2, Download, FileText, Plus, Search, Trash2, Upload, UsersRound, XCircle } from "lucide-react";
 import { RecordModal, type RecordFieldSuggestion, type RecordFieldType } from "@/components/record-modal";
 import { Button, EmptyState, StatusBadge } from "@/components/ui";
 import { hasApprovedApproval, submitApprovalRequest } from "@/lib/approval-matrix";
 import { parseAttendanceLog } from "@/lib/attendance-import";
 import { appendAuditLog, useAuditLog } from "@/lib/audit-store";
+import { downloadBlob } from "@/lib/client-download";
 import { getDemoSession, PRESENTATION_USER_NAME } from "@/lib/demo-auth";
 import { createDemoRecord, readDemoRecordsSnapshot, useDemoRecords, writeDemoRecordsSnapshot, type DemoRecord } from "@/lib/demo-store";
 import { exportToExcel, exportWorkbookToExcel } from "@/lib/export/excel";
@@ -14,6 +15,7 @@ import { writeFinanceJournalDraft } from "@/lib/finance-workflow";
 import { calculateNetPay, calculatePayrollItem, type PayrollEffect } from "@/lib/hr-calculations";
 import { calculateLeaveSettlement, calculateMonthlyPayrollLine, validateMonthlyPayroll, type MonthlyPayrollLineInput, type MonthlyPayrollSettings } from "@/lib/payroll-calculations";
 import { applyLoanDeductions, buildLoanSchedule, cancelLoan, loanBalance, loanInstallmentCount, markPayrollInstallmentsDeducted, parseLoanSchedule, pendingLoanDeduction, postponeInstallment, refreshCompletedLoans, releasePayrollInstallments, type LoanRecord } from "@/lib/payroll-loans";
+import { buildSifCsv, defaultSifSettings, sifFileName, validateSifExport, type SifEmployeeMaster, type SifPayrollLine, type SifRunContext, type SifValidationError } from "@/lib/sif-export";
 import { buildWpsRows, buildWpsSummaryRows, defaultWpsColumns, validateWpsExport, type WpsValidationError } from "@/lib/wps-export";
 import { attendanceViews, leaveViews, payrollModules, payrollViews, recruitmentViews, type HrOperationalView } from "@/lib/hr-operations-data";
 import { hrEmployees, hrViews } from "@/lib/hr-data";
@@ -983,7 +985,8 @@ function formatDemoDateTime(date: Date) {
 function groupBy<T>(items: T[], keyFor: (item: T) => string) {
   return items.reduce((groups, item) => {
     const key = keyFor(item);
-    groups.set(key, [...(groups.get(key) ?? []), item]);
+    const group = groups.get(key);
+    if (group) group.push(item); else groups.set(key, [item]);
     return groups;
   }, new Map<string, T[]>());
 }
@@ -1010,8 +1013,10 @@ type MonthlyPayrollRow = MonthlyPayrollLineInput & {
 };
 
 const companies = ["MedTech Corporation Trading W.L.L."];
+const allDepartments = "All departments";
 const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-const monthlyPayrollSeed = [{ Run: "MPR-MEDTECH-2026-05-Sales", Company: companies[0], Month: "5", Year: "2026", Department: "Sales", Employees: "28", Gross: "QAR 286,000.00", Deductions: "QAR 8,400.00", Net: "QAR 277,600.00", Status: "Finalized", "Created by": PRESENTATION_USER_NAME, "Finalized by": "Payroll Manager", "Finalized date": "20 Jun 2026, 10:30", Lines: "[]" }];
+const demoPayrollMonth = "6";
+const demoPayrollYear = "2026";
 const defaultPayrollSettings: MonthlyPayrollSettings = { salaryCalculationMethod: "calendar_days", configuredWorkingDays: 26 };
 const defaultWpsSettings = { format: "qatar_wps", columns: defaultWpsColumns };
 const leaveSettlementSeed = [
@@ -1049,65 +1054,88 @@ const employeeLoanSeed: LoanRecord[] = [{
   Status: "active",
   Schedule: JSON.stringify(buildLoanSchedule(12000, 1000, 6, 2026))
 }];
+const monthlyPayrollSeed = buildMonthlyPayrollSeed();
 
 function MonthlyPayroll() {
   const [company, setCompany] = useState(companies[0]);
-  const [month, setMonth] = useState(String(new Date().getMonth() + 1));
-  const [year, setYear] = useState(String(new Date().getFullYear()));
-  const [department, setDepartment] = useState("Sales");
+  const [month, setMonth] = useState(demoPayrollMonth);
+  const [year, setYear] = useState(demoPayrollYear);
+  const [department, setDepartment] = useState(allDepartments);
   const [rows, setRows] = useState<MonthlyPayrollRow[]>([]);
   const [runId, setRunId] = useState("");
   const [status, setStatus] = useState<"New" | "Draft" | "Validated" | "Finalized" | "Cancelled">("New");
   const [messages, setMessages] = useState<string[]>([]);
   const [wpsErrors, setWpsErrors] = useState<WpsValidationError[]>([]);
+  const [sifErrors, setSifErrors] = useState<SifValidationError[]>([]);
   const [showAudit, setShowAudit] = useState(false);
   const [adminReason, setAdminReason] = useState("");
+  const [sifDepartment, setSifDepartment] = useState(allDepartments);
   const [toast, setToast] = useState("");
   const runs = useDemoRecords("hr-payroll:Monthly Payroll", monthlyPayrollSeed);
   const loanStore = useDemoRecords("hr-payroll:Loans", employeeLoanSeed);
   const audit = useAuditLog();
   const loans = loanStore.records as Array<DemoRecord & LoanRecord>;
-  const departments = useMemo(() => Array.from(new Set(hrEmployees.map(employee => employee.Department).filter(Boolean))).sort(), []);
+  const departments = useMemo(() => [allDepartments, ...Array.from(new Set(hrEmployees.map(employee => employee.Department).filter(Boolean))).sort()], []);
   const calendarDays = useMemo(() => new Date(Number(year), Number(month), 0).getDate(), [month, year]);
   const locked = status === "Finalized";
   const canFinalize = isPayrollFinalizer();
   const lineResults = useMemo(() => rows.map(row => calculateMonthlyPayrollLine(row, defaultPayrollSettings, calendarDays)), [rows, calendarDays]);
   const totals = useMemo(() => lineResults.reduce((sum, result) => ({
     salary: sum.salary + result.salaryPayable,
+    earnings: sum.earnings + result.totalEarnings,
     deductions: sum.deductions + result.totalDeductions,
     net: sum.net + result.netPay
-  }), { salary: 0, deductions: 0, net: 0 }), [lineResults]);
+  }), { salary: 0, earnings: 0, deductions: 0, net: 0 }), [lineResults]);
   const detail = useMemo(() => payrollRunDetail(rows, lineResults), [rows, lineResults]);
+  const sifDepartments = useMemo(() => [allDepartments, ...Array.from(new Set(rows.map(row => row.department || "Unassigned"))).sort()], [rows]);
   const currentRun = runs.records.find(run => run.__id === runId);
   const runKey = monthlyRunKey(company, month, year, department);
   const runAudit = useMemo(() => audit.entries.filter(entry => entry.Record === runKey), [audit.entries, runKey]);
 
   const notify = (message: string) => { setToast(message); window.setTimeout(() => setToast(""), 2600); };
   const updateLoans = (nextLoans: Array<DemoRecord & LoanRecord>) => nextLoans.forEach(loan => loanStore.update(loan.__id, loan));
-  const openRun = (run: DemoRecord) => {
+  const repairRunLines = useCallback((run: DemoRecord, nextRows: MonthlyPayrollRow[]) => {
+    if (!nextRows.length || parseMonthlyLines(run.Lines).length) return;
+    const runCalendarDays = new Date(Number(run.Year), Number(run.Month), 0).getDate();
+    const nextResults = nextRows.map(row => calculateMonthlyPayrollLine(row, defaultPayrollSettings, runCalendarDays));
+    runs.update(run.__id, monthlyRunRecord(run.Run || monthlyRunKey(run.Company || company, run.Month || month, run.Year || year, run.Department || department), run.Company || company, run.Month || month, run.Year || year, run.Department || department, nextRows, nextResults, run.Status || "Draft", run));
+  }, [company, department, month, runs, year]);
+  const openRun = useCallback((run: DemoRecord) => {
+    const nextRows = monthlyRowsForRun(run, loans);
     setCompany(run.Company || companies[0]);
-    setMonth(run.Month || String(new Date().getMonth() + 1));
-    setYear(run.Year || String(new Date().getFullYear()));
-    setDepartment(run.Department || "Sales");
-    setRows(parseMonthlyLines(run.Lines));
+    setMonth(run.Month || demoPayrollMonth);
+    setYear(run.Year || demoPayrollYear);
+    setDepartment(run.Department || allDepartments);
+    setRows(nextRows);
     setRunId(run.__id);
     setStatus((run.Status as typeof status) || "Draft");
+    repairRunLines(run, nextRows);
     setMessages([]);
     setWpsErrors([]);
+    setSifErrors([]);
     setShowAudit(false);
     setAdminReason("");
-  };
+    setSifDepartment(allDepartments);
+  }, [loans, repairRunLines]);
+  useEffect(() => {
+    const match = runs.records.find(run => run.Company === company && run.Month === month && run.Year === year && run.Department === department && run.Status !== "Cancelled");
+    if (!match || (match.__id === runId && rows.length)) return;
+    openRun(match);
+  }, [company, month, year, department, runId, rows.length, runs.records, openRun]);
   const loadEmployees = () => {
     const period = `${monthNames[Number(month) - 1]} ${year}`;
     const loaded = hrEmployees
-      .filter(employee => employee.Status === "Active" && employee.Department === department && employeeCompany(employee) === company)
+      .filter(employee => isPayrollEmployee(employee) && payrollScopeMatches(employee, company, department))
+      .sort((a, b) => a.Department.localeCompare(b.Department) || a["Full Name"].localeCompare(b["Full Name"]))
       .map(employee => employeeToMonthlyPayrollRow(employee, period, calendarDays, loans, Number(month), Number(year)));
     setRows(loaded);
-    setMessages(loaded.length ? [] : ["No active employees found for the selected company and department."]);
+    setMessages(loaded.length ? [] : ["No payroll-eligible employees found for the selected company and department."]);
     setWpsErrors([]);
+    setSifErrors([]);
     setStatus("New");
     setRunId("");
     setShowAudit(false);
+    setSifDepartment(allDepartments);
     notify(`${loaded.length} employee${loaded.length === 1 ? "" : "s"} loaded`);
   };
   const createDraft = () => {
@@ -1115,9 +1143,12 @@ function MonthlyPayroll() {
     if (duplicate) {
       setRunId(duplicate.__id);
       setStatus((duplicate.Status as typeof status) || "Draft");
-      setRows(parseMonthlyLines(duplicate.Lines));
+      const duplicateRows = monthlyRowsForRun(duplicate, loans);
+      setRows(duplicateRows);
+      repairRunLines(duplicate, duplicateRows);
       setMessages([`Existing ${duplicate.Status.toLowerCase()} payroll found for this company, department and period.`]);
       setWpsErrors([]);
+      setSifErrors([]);
       setShowAudit(false);
       return;
     }
@@ -1127,6 +1158,7 @@ function MonthlyPayroll() {
     setStatus("Draft");
     setMessages([]);
     setWpsErrors([]);
+    setSifErrors([]);
     appendAuditLog({ action: "CREATE DRAFT PAYROLL", module: "Human Resources - Payroll", record: runKey, details: `${rows.length} employee lines created` });
     notify("Draft payroll created");
   };
@@ -1135,6 +1167,7 @@ function MonthlyPayroll() {
     if (locked) { setMessages(["Finalized payroll is locked."]); return; }
     runs.update(runId, monthlyRunRecord(runKey, company, month, year, department, rows, lineResults, "Draft", currentRun));
     setStatus("Draft");
+    setSifErrors([]);
     appendAuditLog({ action: "SAVE DRAFT PAYROLL", module: "Human Resources - Payroll", record: runKey, details: `${rows.length} employee lines saved` });
     notify("Draft payroll saved");
   };
@@ -1144,6 +1177,7 @@ function MonthlyPayroll() {
     if (!errors.length && runId) {
       runs.update(runId, monthlyRunRecord(runKey, company, month, year, department, rows, lineResults, "Validated", currentRun));
       setStatus("Validated");
+      setSifErrors([]);
       appendAuditLog({ action: "VALIDATE PAYROLL", module: "Human Resources - Payroll", record: runKey, details: "Payroll validation passed" });
     }
   };
@@ -1151,10 +1185,10 @@ function MonthlyPayroll() {
     const session = getDemoSession();
     const finalRows = applyLoanDeductions(rows, loans, Number(month), Number(year));
     const finalResults = finalRows.map(row => calculateMonthlyPayrollLine(row, defaultPayrollSettings, calendarDays));
-    const finalTotals = finalResults.reduce((sum, result) => ({ gross: sum.gross + result.salaryPayable, deductions: sum.deductions + result.totalDeductions, net: sum.net + result.netPay }), { gross: 0, deductions: 0, net: 0 });
+    const finalTotals = finalResults.reduce((sum, result) => ({ gross: sum.gross + result.salaryPayable, earnings: sum.earnings + result.totalEarnings, deductions: sum.deductions + result.totalDeductions, net: sum.net + result.netPay }), { gross: 0, earnings: 0, deductions: 0, net: 0 });
     const errors = validateMonthlyPayroll(finalRows, finalResults);
     const permission = permissionError(session, "Payroll", "finalize/post/lock");
-    const segregation = segregationWarning({ action: "approve", moduleName: "Payroll", record: currentRun, session });
+    const segregation = segregationWarning({ action: "finalize/post/lock", moduleName: "Payroll", record: currentRun, session });
     if (permission) errors.unshift(permission);
     if (segregation) errors.unshift(segregation);
     if (!canFinalize) errors.unshift("Only Super Admin, HR Manager, or Payroll Manager can finalize payroll.");
@@ -1166,6 +1200,7 @@ function MonthlyPayroll() {
     const journalLines = writePayrollAccountingDrafts(runKey, finalRows, finalResults);
     setRows(finalRows);
     setStatus("Finalized");
+    setSifErrors([]);
     setMessages([`Payroll finalized and locked. ${journalLines.length} cost center draft journal line${journalLines.length === 1 ? "" : "s"} created.`]);
     appendAuditLog({ action: "FINALIZE PAYROLL", module: "Human Resources - Payroll", record: runKey, details: `Net payroll ${qar(finalTotals.net)}; ${journalLines.length} cost center draft journal lines` });
     notify("Payroll finalized");
@@ -1235,6 +1270,39 @@ function MonthlyPayroll() {
     appendAuditLog({ action: "DOWNLOAD PAYROLL SHEET", module: "Human Resources - Payroll", record: runKey, details: `${rows.length} payroll lines exported` });
     notify("Payroll sheet downloaded");
   };
+  const downloadSifFile = (targetRows: MonthlyPayrollRow[], scope: string, offsetMinutes = 0) => {
+    const targetResults = targetRows.map(row => calculateMonthlyPayrollLine(row, defaultPayrollSettings, calendarDays));
+    const context = sifRunContext(month, year, offsetMinutes);
+    const masters = hrEmployees.map(employeeToSifMaster);
+    const lines = payrollRowsToSifLines(targetRows, targetResults);
+    const errors = validateSifExport(lines, masters, context);
+    if (errors.length) return errors;
+    downloadBlob(new Blob([buildSifCsv(lines, masters, context)], { type: "text/csv;charset=utf-8" }), sifFileName(context));
+    appendAuditLog({ action: "GENERATE SIF", module: "Human Resources - Payroll", record: runKey, details: `${scope}: ${targetRows.length} employee salary lines` });
+    return [];
+  };
+  const downloadDepartmentSifs = () => {
+    if (status !== "Finalized") { setMessages(["SIF can only be downloaded after payroll is finalized."]); return; }
+    const groups = Array.from(groupBy(rows, row => row.department || "Unassigned").entries()).sort(([a], [b]) => a.localeCompare(b));
+    const selectedGroups = sifDepartment === allDepartments ? groups : groups.filter(([dept]) => dept === sifDepartment);
+    if (!selectedGroups.length) { setMessages([`No finalized payroll rows found for ${sifDepartment}.`]); return; }
+    for (const [index, [dept, deptRows]] of selectedGroups.entries()) {
+      const errors = downloadSifFile(deptRows, `Department ${dept}`, index);
+      if (errors.length) { setSifErrors(errors); setMessages(["Department SIF validation failed. Fix the listed employee payment fields before export."]); return; }
+    }
+    setSifErrors([]);
+    notify(`${selectedGroups.length} department SIF file${selectedGroups.length === 1 ? "" : "s"} downloaded`);
+  };
+  const downloadCompanySif = () => {
+    if (status !== "Finalized") { setMessages(["SIF can only be downloaded after payroll is finalized."]); return; }
+    const companyRows = companyPayrollRows(runs.records, runId, rows, company, month, year, loans);
+    const missing = missingCompanyPayrollEmployees(companyRows, company);
+    if (missing.length) { setMessages([`Company SIF needs all payroll-eligible employees. Missing: ${missing.slice(0, 4).join(", ")}${missing.length > 4 ? "..." : ""}`]); return; }
+    const errors = downloadSifFile(companyRows, "Company", 0);
+    if (errors.length) { setSifErrors(errors); setMessages(["Company SIF validation failed. Fix the listed employee payment fields before export."]); return; }
+    setSifErrors([]);
+    notify("Company SIF file downloaded");
+  };
 
   return <div className="space-y-4">
     <section className="rounded-2xl border bg-[var(--panel)] p-4 shadow-soft">
@@ -1247,9 +1315,10 @@ function MonthlyPayroll() {
       </div>
     </section>
 
-    <section className="grid gap-3 md:grid-cols-4">
+    <section className="grid gap-3 md:grid-cols-5">
       <PayrollMetric label="Status" value={status} />
       <PayrollMetric label="Employees" value={String(rows.length)} />
+      <PayrollMetric label="Total earnings" value={qar(totals.earnings)} tone="positive" />
       <PayrollMetric label="Total deductions" value={qar(totals.deductions)} tone="negative" />
       <PayrollMetric label="Net payroll" value={qar(totals.net)} tone="positive" />
     </section>
@@ -1275,6 +1344,9 @@ function MonthlyPayroll() {
           {status === "Finalized" && <>
             <Button variant="secondary" onClick={downloadPayrollSheet}><Download className="h-4 w-4" />Download Payroll Sheet</Button>
             <Button variant="secondary" onClick={downloadWps}><Download className="h-4 w-4" />Download WPS Sheet</Button>
+            <label className="min-w-[180px]"><span className="sr-only">SIF export scope</span><select aria-label="SIF export scope" value={sifDepartment} onChange={event => setSifDepartment(event.target.value)} className="h-10 w-full rounded-xl border bg-[var(--panel)] px-3 text-xs font-semibold text-medtech-navy outline-none focus:border-medtech-red focus:ring-2 focus:ring-[var(--focus-ring)]">{sifDepartments.map(dept => <option key={dept} value={dept}>{dept}</option>)}</select></label>
+            <Button variant="secondary" onClick={downloadDepartmentSifs}><Download className="h-4 w-4" />Download Dept SIFs</Button>
+            <Button onClick={downloadCompanySif}><Download className="h-4 w-4" />Download Company SIF</Button>
             <Button variant="secondary" onClick={() => setShowAudit(value => !value)}>View Audit Log</Button>
           </>}
         </div>
@@ -1289,9 +1361,12 @@ function MonthlyPayroll() {
         <PreviewRow label="Finalized by" value={currentRun?.["Finalized by"] || "-"} />
         <PreviewRow label="Finalized date" value={currentRun?.["Finalized date"] || "-"} />
       </div>
-      <div className="grid gap-3 border-b p-4 sm:grid-cols-2 xl:grid-cols-7">
+      <div className="grid gap-3 border-b p-4 sm:grid-cols-2 xl:grid-cols-8">
         <PayrollMetric label="Number of employees" value={String(rows.length)} />
         <PayrollMetric label="Total gross salary" value={qar(detail.grossSalary)} />
+        <PayrollMetric label="Total overtime" value={qar(detail.overtimeAmount)} tone="positive" />
+        <PayrollMetric label="Total linked earnings" value={qar(detail.linkedEarnings)} tone="positive" />
+        <PayrollMetric label="Total salary advances" value={qar(detail.salaryAdvance)} tone="negative" />
         <PayrollMetric label="Total loan deductions" value={qar(detail.loanDeductions)} tone="negative" />
         <PayrollMetric label="Total other deductions" value={qar(detail.otherDeductions)} tone="negative" />
         <PayrollMetric label="Total leave settlement" value={qar(detail.leaveSettlement)} tone="positive" />
@@ -1311,8 +1386,12 @@ function MonthlyPayroll() {
         <div className="mb-2 text-xs font-bold text-rose-700">WPS export blocked</div>
         <div className="overflow-x-auto rounded-xl border border-rose-200 bg-white dark:border-rose-900 dark:bg-slate-950/30"><table className="w-full min-w-[520px] text-left text-xs"><thead><tr className="border-b text-[10px] uppercase tracking-wide text-rose-500"><th className="px-3 py-2">Employee</th><th className="px-3 py-2">Missing / invalid field</th></tr></thead><tbody>{wpsErrors.map((error, index) => <tr key={`${error.employee}-${error.missingField}-${index}`} className="border-b last:border-b-0"><td className="px-3 py-2 font-semibold">{error.employee}</td><td className="px-3 py-2">{error.missingField}</td></tr>)}</tbody></table></div>
       </div>}
-      {rows.length ? <div className="overflow-x-auto"><table className="w-full min-w-[1420px] text-left text-xs">
-        <thead><tr className="border-b bg-slate-50/80 dark:bg-slate-900/40">{["Employee Code", "Employee Name", "Department", "Basic Salary", "Gross Salary", "Working Days", "Paid Days", "Loan Deduction", "Leave Settlement", "EOS Settlement", "Other Deductions", "Net Pay", "Remarks"].map(label => <th key={label} className="px-3 py-3 text-[10px] font-bold uppercase tracking-wide text-slate-400">{label}</th>)}</tr></thead>
+      {sifErrors.length > 0 && <div className="border-b bg-rose-50/70 p-4 dark:bg-rose-950/20">
+        <div className="mb-2 text-xs font-bold text-rose-700">SIF export blocked</div>
+        <div className="overflow-x-auto rounded-xl border border-rose-200 bg-white dark:border-rose-900 dark:bg-slate-950/30"><table className="w-full min-w-[520px] text-left text-xs"><thead><tr className="border-b text-[10px] uppercase tracking-wide text-rose-500"><th className="px-3 py-2">Employee</th><th className="px-3 py-2">Missing / invalid field</th></tr></thead><tbody>{sifErrors.map((error, index) => <tr key={`${error.employee}-${error.missingField}-${index}`} className="border-b last:border-b-0"><td className="px-3 py-2 font-semibold">{error.employee}</td><td className="px-3 py-2">{error.missingField}</td></tr>)}</tbody></table></div>
+      </div>}
+      {rows.length ? <div className="overflow-x-auto"><table className="w-full min-w-[2060px] text-left text-xs">
+        <thead><tr className="border-b bg-slate-50/80 dark:bg-slate-900/40">{["Employee Code", "Employee Name", "Department", "Basic Salary", "Gross Salary", "Working Days", "Paid Days", "Overtime", "Salary Advance", "Salary Adjustment", "Paid Vacation", "Insurance Refund", "Air Ticket", "Loan Deduction", "Leave Settlement", "EOS Settlement", "Other Deductions", "Net Pay", "Remarks"].map(label => <th key={label} className="px-3 py-3 text-[10px] font-bold uppercase tracking-wide text-slate-400">{label}</th>)}</tr></thead>
         <tbody className="divide-y">{rows.map((row, index) => {
           const result = lineResults[index];
           return <tr key={row.employeeCode} className={cn("hover:bg-slate-50/70 dark:hover:bg-slate-900/40", locked && "bg-slate-50/40 dark:bg-slate-900/20")}>
@@ -1321,8 +1400,14 @@ function MonthlyPayroll() {
             <td className="px-3 py-3 text-[var(--muted)]">{row.department}</td>
             <td className="px-3 py-3">{qar(row.basicSalary)}</td>
             <td className="px-3 py-3 font-semibold">{qar(row.grossSalary)}</td>
-            <td className="px-3 py-3"><GridNumber value={row.workingDays} locked={locked} onChange={value => updateRow(row.employeeCode, { workingDays: value })} /></td>
-            <td className="px-3 py-3"><GridNumber value={row.paidDays} locked={locked} onChange={value => updateRow(row.employeeCode, { paidDays: value, unpaidDays: Math.max(0, row.workingDays - value) })} /></td>
+            <td className="px-3 py-3"><ReadOnlyGridNumber label={`Working days for ${row.employeeName}`} value={row.workingDays} /></td>
+            <td className="px-3 py-3"><ReadOnlyGridNumber label={`Paid days for ${row.employeeName}`} value={row.paidDays} /></td>
+            <td className="px-3 py-3 font-semibold text-medtech-navy">{qar(row.overtimeAmount)}</td>
+            <td className="px-3 py-3 text-rose-600">{qar(row.salaryAdvanceAmount)}</td>
+            <td className={cn("px-3 py-3 font-semibold", row.salaryAdjustmentAmount < 0 ? "text-rose-600" : "text-medtech-navy")}>{qar(row.salaryAdjustmentAmount)}</td>
+            <td className="px-3 py-3 text-medtech-navy">{qar(row.paidVacationSalaryAmount)}</td>
+            <td className="px-3 py-3 text-medtech-navy">{qar(row.insuranceRefundAmount)}</td>
+            <td className="px-3 py-3 text-medtech-navy">{qar(row.airTicketEncashmentAmount)}</td>
             <td className="px-3 py-3 text-rose-600">{qar(row.loanDeduction)}</td>
             <td className="px-3 py-3">{qar(row.leaveSettlementAmount)}</td>
             <td className="px-3 py-3">{qar(row.eosSettlementAmount)}</td>
@@ -1851,7 +1936,7 @@ function writePayrollAccountingDrafts(runKey: string, rows: MonthlyPayrollRow[],
     "Employee Name": row.employeeName,
     "Cost Center": payrollCostCenter(row),
     "Allocation %": "100",
-    Amount: qar(results[rowIndex]?.salaryPayable || row.grossSalary),
+    Amount: qar(results[rowIndex]?.netPay || row.grossSalary),
     "Finance Journal Draft": "Draft",
     Status: "Generated"
   }));
@@ -1881,6 +1966,7 @@ function employeeToMonthlyPayrollRow(employee: Record<string, string>, period: s
   const basicSalary = numberValue(employee["Basic Salary"]) || numberValue(employee.Basic);
   const grossSalary = numberValue(employee["Total Salary"]) || numberValue(employee.Total) || basicSalary + employeeAllowances(employee);
   const allowances = Math.max(0, grossSalary - basicSalary) || employeeAllowances(employee);
+  const unpaidDays = monthlyDeductedAbsenceDays(employee["Full Name"], period);
   return {
     employeeCode: employee["Employee No"] || employee["Employee Code"],
     employeeName: employee["Full Name"],
@@ -1890,11 +1976,18 @@ function employeeToMonthlyPayrollRow(employee: Record<string, string>, period: s
     allowances,
     grossSalary,
     workingDays: calendarDays,
-    paidDays: calendarDays,
-    unpaidDays: 0,
+    paidDays: Math.max(0, calendarDays - unpaidDays),
+    unpaidDays,
     leaveDays: 0,
     loanDeduction: month && year ? pendingLoanDeductionForEmployee(loans, employee["Employee No"] || employee["Employee Code"], month, year) : moduleMonthlyAmount("Employee Loan", employee["Full Name"], period),
     otherDeductions: 0,
+    overtimeHours: moduleMonthlyQuantity("Overtime", employee["Full Name"], period),
+    overtimeAmount: moduleMonthlyAmount("Overtime", employee["Full Name"], period),
+    salaryAdvanceAmount: moduleMonthlyAmount("Salary Advance", employee["Full Name"], period),
+    salaryAdjustmentAmount: moduleSignedMonthlyAmount("Salary Adjustment", employee["Full Name"], period),
+    paidVacationSalaryAmount: moduleMonthlyAmount("Paid Vacation Salary", employee["Full Name"], period),
+    insuranceRefundAmount: moduleMonthlyAmount("Insurance Claims / Refund", employee["Full Name"], period),
+    airTicketEncashmentAmount: moduleMonthlyAmount("Air Ticket Encashment", employee["Full Name"], period),
     leaveSettlementAmount: moduleMonthlyAmount("Leave Settlement", employee["Full Name"], period),
     eosSettlementAmount: moduleMonthlyAmount("Final Settlement", employee["Full Name"], period),
     hasBankDetails: Boolean(employee.IBAN || employee["IBAN No."] || employee["Account No"]),
@@ -1903,26 +1996,69 @@ function employeeToMonthlyPayrollRow(employee: Record<string, string>, period: s
   };
 }
 
+function buildMonthlyPayrollSeed() {
+  const month = demoPayrollMonth;
+  const year = demoPayrollYear;
+  const calendarDays = new Date(Number(year), Number(month), 0).getDate();
+  const period = `${monthNames[Number(month) - 1]} ${year}`;
+  const rows = hrEmployees
+    .filter(employee => isPayrollEmployee(employee) && employeeCompany(employee) === companies[0])
+    .sort((a, b) => a.Department.localeCompare(b.Department) || a["Full Name"].localeCompare(b["Full Name"]))
+    .map(employee => ({ ...employeeToMonthlyPayrollRow(employee, period, calendarDays, employeeLoanSeed, Number(month), Number(year)), status: "Finalized" }));
+  const results = rows.map(row => calculateMonthlyPayrollLine(row, defaultPayrollSettings, calendarDays));
+  return [{ ...monthlyRunRecord(monthlyRunKey(companies[0], month, year, allDepartments), companies[0], month, year, allDepartments, rows, results, "Finalized"), "Created by": "Payroll Manager", "Finalized by": "Payroll Manager", "Finalized date": "20 Jun 2026, 10:30" }];
+}
+
 function employeeAllowances(employee: Record<string, string>) {
   return ["Housing Allowance", "Transport Allowance", "HRA", "Food Allowance", "Mobile Allowance", "Special Allowance", "Other Allowance"].reduce((sum, key) => sum + numberValue(employee[key]), 0);
 }
 
 function moduleMonthlyAmount(module: string, employee: string, period: string) {
   return readDemoRecordsSnapshot(`hr-operations:Payroll:${module}`, payrollViews[module].rows)
-    .filter(row => row.Employee === employee && periodMatches(row["Payroll period"], period) && postedPayrollStatus(row.Status))
+    .filter(row => row.Employee === employee && periodMatches(row["Payroll period"], period) && postedPayrollStatus(module, row.Status))
     .reduce((sum, row) => sum + Math.abs(numberValue(row["Net effect"]) || numberValue(row["Calculated amount"]) || numberValue(row["Fixed amount"])), 0);
+}
+
+function monthlyDeductedAbsenceDays(employee: string, period: string) {
+  return readDemoRecordsSnapshot("hr-operations:Attendance:Absence Monitoring", attendanceViews["Absence Monitoring"].rows)
+    .filter(row => row.Employee === employee && row.Status === "Deducted" && periodMatches(row.Date, period))
+    .reduce((sum, row) => sum + (numberValue(row.Days) || numberValue(row.Hours) / 8), 0);
+}
+
+function moduleSignedMonthlyAmount(module: string, employee: string, period: string) {
+  return readDemoRecordsSnapshot(`hr-operations:Payroll:${module}`, payrollViews[module].rows)
+    .filter(row => row.Employee === employee && periodMatches(row["Payroll period"], period) && postedPayrollStatus(module, row.Status))
+    .reduce((sum, row) => sum + payrollNetEffect(row), 0);
+}
+
+function payrollNetEffect(row: Record<string, string>) {
+  const explicit = numberValue(row["Net effect"]);
+  if (explicit) return explicit;
+  const amount = Math.abs(numberValue(row["Calculated amount"]) || numberValue(row["Fixed amount"]));
+  if (row["Payroll effect"] === "Deduction") return -amount;
+  if (row["Payroll effect"] === "Earning") return amount;
+  return 0;
 }
 
 function pendingLoanDeductionForEmployee(loans: Array<Pick<LoanRecord, "Employee Code" | "Status" | "Schedule">>, employeeCode: string, month: number, year: number) {
   return pendingLoanDeduction(loans, employeeCode, month, year);
 }
 
-function postedPayrollStatus(status?: string) {
+function postedPayrollStatus(module: string, status?: string) {
+  if (["Leave Settlement", "Final Settlement"].includes(module)) return status === "Posted to payroll" || status === "Processed";
   return status === "Approved" || status === "Processed" || status === "Posted to payroll";
 }
 
 function employeeCompany(employee: Record<string, string>) {
   return employee.Company || employee["Working Company Name"] || companies[0];
+}
+
+function isPayrollEmployee(employee: Record<string, string>) {
+  return ["active", "on leave"].includes(String(employee.Status || "").toLowerCase());
+}
+
+function payrollScopeMatches(employee: Record<string, string>, company: string, department: string) {
+  return employeeCompany(employee) === company && (department === allDepartments || employee.Department === department);
 }
 
 function employeeToWpsMaster(employee: Record<string, string>) {
@@ -1934,6 +2070,95 @@ function employeeToWpsMaster(employee: Record<string, string>) {
     iban: employee.IBAN || employee["IBAN No."],
     qidOrEmployeeId: employee["ID/Passport No"] || employee["RP/ID Number"] || employee["Passport No."] || employee["Employee No"] || employee["Employee Code"]
   };
+}
+
+function employeeToSifMaster(employee: Record<string, string>): SifEmployeeMaster {
+  return {
+    employeeCode: employee["Employee No"] || employee["Employee Code"],
+    employeeName: employee["Full Name"],
+    bankShortName: bankShortName(employee["Bank Code"] || employee["Bank Name"]),
+    accountNumber: employee["Account No."] || employee["Account No"],
+    iban: cleanBankValue(employee.IBAN || employee["IBAN No."]),
+    qidOrEmployeeId: employee["ID/Passport No"] || employee["RP/ID Number"] || "",
+    visaId: employee["Visa ID"] || employee["Passport No."] || ""
+  };
+}
+
+function payrollRowsToSifLines(rows: MonthlyPayrollRow[], results: ReturnType<typeof calculateMonthlyPayrollLine>[]): SifPayrollLine[] {
+  const employees = new Map(hrEmployees.map(employee => [employee["Employee No"] || employee["Employee Code"], employee]));
+  return rows.map((row, index) => {
+    const employee = employees.get(row.employeeCode) ?? ({} as Record<string, string>);
+    return {
+      employeeCode: row.employeeCode,
+      employeeName: row.employeeName,
+      department: row.department,
+      paidDays: row.paidDays,
+      workingDays: row.workingDays,
+      netSalary: results[index]?.netPay || 0,
+      basicSalary: row.basicSalary,
+      extraHours: row.overtimeHours || 0,
+      extraIncome: row.overtimeAmount + Math.max(0, row.salaryAdjustmentAmount) + row.paidVacationSalaryAmount + row.insuranceRefundAmount + row.airTicketEncashmentAmount + row.leaveSettlementAmount + row.eosSettlementAmount,
+      deductions: row.loanDeduction + row.salaryAdvanceAmount + row.otherDeductions + Math.max(0, -row.salaryAdjustmentAmount),
+      remarks: row.remarks || (row.loanDeduction || row.salaryAdvanceAmount || row.otherDeductions ? "Salary advance or loan deduction" : ""),
+      housingAllowance: numberValue(employee["Housing Allowance"] || employee.HRA),
+      foodAllowance: numberValue(employee["Food Allowance"]),
+      transportAllowance: numberValue(employee["Transport Allowance"]),
+      overtimeAllowance: row.overtimeAmount || numberValue(employee["Overtime Amount"])
+    };
+  });
+}
+
+function moduleMonthlyQuantity(module: string, employee: string, period: string) {
+  return readDemoRecordsSnapshot(`hr-operations:Payroll:${module}`, payrollViews[module].rows)
+    .filter(row => row.Employee === employee && periodMatches(row["Payroll period"], period) && postedPayrollStatus(module, row.Status))
+    .reduce((sum, row) => sum + Math.abs(numberValue(row.Quantity)), 0);
+}
+
+function sifRunContext(month: string, year: string, offsetMinutes = 0): SifRunContext {
+  const date = new Date(Date.now() + offsetMinutes * 60_000);
+  return {
+    ...defaultSifSettings,
+    salaryMonth: String(Number(month)),
+    salaryYear: year,
+    fileCreationDate: `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, "0")}${String(date.getDate()).padStart(2, "0")}`,
+    fileCreationTime: `${String(date.getHours()).padStart(2, "0")}${String(date.getMinutes()).padStart(2, "0")}`
+  };
+}
+
+function companyPayrollRows(runs: DemoRecord[], currentRunId: string, currentRows: MonthlyPayrollRow[], company: string, month: string, year: string, loans: Array<Pick<LoanRecord, "Employee Code" | "Status" | "Schedule">> = employeeLoanSeed) {
+  const byEmployee = new Map<string, MonthlyPayrollRow>();
+  runs
+    .filter(run => run.__id !== currentRunId && run.Company === company && run.Month === month && run.Year === year && run.Status === "Finalized")
+    .flatMap(run => monthlyRowsForRun(run, loans))
+    .forEach(row => byEmployee.set(row.employeeCode, row));
+  currentRows.forEach(row => byEmployee.set(row.employeeCode, row));
+  return Array.from(byEmployee.values()).sort((a, b) => a.department.localeCompare(b.department) || a.employeeName.localeCompare(b.employeeName));
+}
+
+function missingCompanyPayrollEmployees(rows: MonthlyPayrollRow[], company: string) {
+  const paid = new Set(rows.map(row => row.employeeCode));
+  return hrEmployees
+    .filter(employee => isPayrollEmployee(employee) && employeeCompany(employee) === company && !paid.has(employee["Employee No"] || employee["Employee Code"]))
+    .map(employee => `${employee["Employee No"]} ${employee["Full Name"]}`);
+}
+
+function bankShortName(value?: string) {
+  const normalized = String(value || "").trim().toLowerCase();
+  const aliases: Record<string, string> = {
+    "commercial bank": "CBQ",
+    "qnb": "QNB",
+    "qatar national bank": "QNB",
+    "qib": "QIB",
+    "qatar islamic bank": "QIB",
+    "doha bank": "DHB",
+    "dukhan bank": "DKB"
+  };
+  return aliases[normalized] || normalized.toUpperCase().replace(/[^A-Z0-9]+/g, "").slice(0, 8);
+}
+
+function cleanBankValue(value?: string) {
+  const cleaned = String(value || "").replace(/\s+/g, "");
+  return cleaned.includes("*") ? "" : cleaned;
 }
 
 function monthlyRunKey(company: string, month: string, year: string, department: string) {
@@ -1950,7 +2175,7 @@ function safeFilePart(value: string) {
 }
 
 function monthlyRunRecord(run: string, company: string, month: string, year: string, department: string, rows: MonthlyPayrollRow[], results: ReturnType<typeof calculateMonthlyPayrollLine>[], status: string, previous?: DemoRecord) {
-  const totals = results.reduce((sum, result) => ({ gross: sum.gross + result.salaryPayable, deductions: sum.deductions + result.totalDeductions, net: sum.net + result.netPay }), { gross: 0, deductions: 0, net: 0 });
+  const totals = results.reduce((sum, result) => ({ gross: sum.gross + result.salaryPayable, earnings: sum.earnings + result.totalEarnings, deductions: sum.deductions + result.totalDeductions, net: sum.net + result.netPay }), { gross: 0, earnings: 0, deductions: 0, net: 0 });
   const user = getDemoSession()?.name || PRESENTATION_USER_NAME;
   const finalized = status === "Finalized";
   return {
@@ -1961,12 +2186,13 @@ function monthlyRunRecord(run: string, company: string, month: string, year: str
     Department: department,
     Employees: String(rows.length),
     Gross: qar(totals.gross),
+    Earnings: qar(totals.earnings),
     Deductions: qar(totals.deductions),
     Net: qar(totals.net),
     Status: status,
     "Created by": previous?.["Created by"] || user,
-    "Finalized by": finalized ? user : previous?.["Finalized by"] || "",
-    "Finalized date": finalized ? formatDemoDateTime(new Date()) : previous?.["Finalized date"] || "",
+    "Finalized by": finalized ? previous?.["Finalized by"] || user : previous?.["Finalized by"] || "",
+    "Finalized date": finalized ? previous?.["Finalized date"] || formatDemoDateTime(new Date()) : previous?.["Finalized date"] || "",
     Lines: JSON.stringify(rows)
   };
 }
@@ -1975,15 +2201,35 @@ function parseMonthlyLines(value?: string): MonthlyPayrollRow[] {
   try { return value ? JSON.parse(value) as MonthlyPayrollRow[] : []; } catch { return []; }
 }
 
+function monthlyRowsForRun(run: DemoRecord, loans: Array<Pick<LoanRecord, "Employee Code" | "Status" | "Schedule">> = employeeLoanSeed) {
+  const parsed = parseMonthlyLines(run.Lines);
+  if (parsed.length) return parsed;
+  const month = Number(run.Month);
+  const year = Number(run.Year);
+  const calendarDays = month && year ? new Date(year, month, 0).getDate() : 30;
+  const period = `${monthNames[month - 1] || monthNames[Number(demoPayrollMonth) - 1]} ${run.Year || demoPayrollYear}`;
+  return hrEmployees
+    .filter(employee => isPayrollEmployee(employee) && payrollScopeMatches(employee, run.Company || companies[0], run.Department || allDepartments))
+    .sort((a, b) => a.Department.localeCompare(b.Department) || a["Full Name"].localeCompare(b["Full Name"]))
+    .map(employee => ({ ...employeeToMonthlyPayrollRow(employee, period, calendarDays, loans, month, year), status: run.Status || "Draft" }));
+}
+
 function payrollRunDetail(rows: MonthlyPayrollRow[], results: ReturnType<typeof calculateMonthlyPayrollLine>[]) {
   return rows.reduce((sum, row, index) => ({
     grossSalary: sum.grossSalary + row.grossSalary,
+    overtimeAmount: sum.overtimeAmount + (row.overtimeAmount || 0),
+    salaryAdvance: sum.salaryAdvance + (row.salaryAdvanceAmount || 0),
+    salaryAdjustment: sum.salaryAdjustment + (row.salaryAdjustmentAmount || 0),
+    paidVacation: sum.paidVacation + (row.paidVacationSalaryAmount || 0),
+    insuranceRefund: sum.insuranceRefund + (row.insuranceRefundAmount || 0),
+    airTicketEncashment: sum.airTicketEncashment + (row.airTicketEncashmentAmount || 0),
+    linkedEarnings: sum.linkedEarnings + (results[index]?.totalEarnings || 0),
     loanDeductions: sum.loanDeductions + row.loanDeduction,
     otherDeductions: sum.otherDeductions + row.otherDeductions,
     leaveSettlement: sum.leaveSettlement + row.leaveSettlementAmount,
     eosSettlement: sum.eosSettlement + row.eosSettlementAmount,
     netPay: sum.netPay + (results[index]?.netPay || 0)
-  }), { grossSalary: 0, loanDeductions: 0, otherDeductions: 0, leaveSettlement: 0, eosSettlement: 0, netPay: 0 });
+  }), { grossSalary: 0, overtimeAmount: 0, salaryAdvance: 0, salaryAdjustment: 0, paidVacation: 0, insuranceRefund: 0, airTicketEncashment: 0, linkedEarnings: 0, loanDeductions: 0, otherDeductions: 0, leaveSettlement: 0, eosSettlement: 0, netPay: 0 });
 }
 
 function payrollSheetRows(rows: MonthlyPayrollRow[], results: ReturnType<typeof calculateMonthlyPayrollLine>[]) {
@@ -1995,6 +2241,12 @@ function payrollSheetRows(rows: MonthlyPayrollRow[], results: ReturnType<typeof 
     "Gross Salary": row.grossSalary,
     "Working Days": row.workingDays,
     "Paid Days": row.paidDays,
+    Overtime: row.overtimeAmount,
+    "Salary Advance": row.salaryAdvanceAmount,
+    "Salary Adjustment": row.salaryAdjustmentAmount,
+    "Paid Vacation Salary": row.paidVacationSalaryAmount,
+    "Insurance Refund": row.insuranceRefundAmount,
+    "Air Ticket Encashment": row.airTicketEncashmentAmount,
     "Loan Deduction": row.loanDeduction,
     "Leave Settlement": row.leaveSettlementAmount,
     "EOS Settlement": row.eosSettlementAmount,
@@ -2029,7 +2281,7 @@ function ReportTable({ report, rows, columns, query, setQuery, sortColumn, direc
 
 function payrollReportRows(report: PayrollReportName, sources: { runs: DemoRecord[]; loans: Array<DemoRecord & LoanRecord>; leaveSettlements: DemoRecord[]; finalSettlements: DemoRecord[] }) {
   if (report === "Monthly Payroll Summary") return sources.runs.map(run => {
-    const rows = parseMonthlyLines(run.Lines);
+    const rows = monthlyRowsForRun(run, sources.loans);
     const results = rows.map(row => calculateMonthlyPayrollLine(row, defaultPayrollSettings, Number(run.Month) && Number(run.Year) ? new Date(Number(run.Year), Number(run.Month), 0).getDate() : 30));
     const detail = payrollRunDetail(rows, results);
     return {
@@ -2041,6 +2293,9 @@ function payrollReportRows(report: PayrollReportName, sources: { runs: DemoRecor
       Year: run.Year || "",
       Employees: run.Employees || String(rows.length),
       "Gross Salary": qar(detail.grossSalary || numberValue(run.Gross)),
+      "Total Earnings": qar(detail.linkedEarnings),
+      Overtime: qar(detail.overtimeAmount),
+      "Salary Advances": qar(detail.salaryAdvance),
       "Loan Deductions": qar(detail.loanDeductions),
       "Other Deductions": qar(detail.otherDeductions),
       "Leave Settlement": qar(detail.leaveSettlement),
@@ -2049,7 +2304,7 @@ function payrollReportRows(report: PayrollReportName, sources: { runs: DemoRecor
       Status: run.Status || ""
     };
   });
-  if (report === "Employee Payroll History") return sources.runs.flatMap(run => parseMonthlyLines(run.Lines).map((row, index) => {
+  if (report === "Employee Payroll History") return sources.runs.flatMap(run => monthlyRowsForRun(run, sources.loans).map((row, index) => {
     const calendarDays = Number(run.Month) && Number(run.Year) ? new Date(Number(run.Year), Number(run.Month), 0).getDate() : 30;
     const result = calculateMonthlyPayrollLine(row, defaultPayrollSettings, calendarDays);
     return {
@@ -2061,6 +2316,12 @@ function payrollReportRows(report: PayrollReportName, sources: { runs: DemoRecor
       Department: row.department,
       "Basic Salary": qar(row.basicSalary),
       "Gross Salary": qar(row.grossSalary),
+      Overtime: qar(row.overtimeAmount),
+      "Salary Advance": qar(row.salaryAdvanceAmount),
+      "Salary Adjustment": qar(row.salaryAdjustmentAmount),
+      "Paid Vacation Salary": qar(row.paidVacationSalaryAmount),
+      "Insurance Refund": qar(row.insuranceRefundAmount),
+      "Air Ticket Encashment": qar(row.airTicketEncashmentAmount),
       "Loan Deduction": qar(row.loanDeduction),
       "Other Deductions": qar(row.otherDeductions),
       "Net Pay": qar(result.netPay),
@@ -2223,6 +2484,10 @@ function PreviewRow({ label, value }: { label: string; value: string }) {
 
 function GridNumber({ value, locked, onChange }: { value: number; locked: boolean; onChange: (value: number) => void }) {
   return <input type="number" min="0" step="0.5" disabled={locked} value={value} onChange={event => onChange(Number(event.target.value))} className="h-9 w-20 rounded-lg border bg-[var(--panel)] px-2 text-xs disabled:bg-slate-100 dark:disabled:bg-slate-900" />;
+}
+
+function ReadOnlyGridNumber({ label, value }: { label: string; value: number }) {
+  return <div aria-label={label} className="grid h-9 w-20 place-items-center rounded-lg border bg-slate-100 px-2 text-xs font-semibold text-slate-700 dark:bg-slate-900 dark:text-slate-200">{value}</div>;
 }
 
 function NumberField({ label, value, onChange, step = 100 }: { label: string; value: number; onChange: (value: number) => void; step?: number }) { return <label><span className="mb-1 block text-xs font-semibold">{label}</span><input aria-label={label} type="number" min="0" step={step} value={value} onChange={event => onChange(Number(event.target.value))} className="h-10 w-full rounded-xl border bg-[var(--panel)] px-3 text-sm" /></label>; }
