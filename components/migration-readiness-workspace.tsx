@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Download, FileDown, Upload, RotateCcw, Save } from "lucide-react";
@@ -199,7 +199,7 @@ function EditableTable<T extends { __id: string }>({ rows, columns, statusColumn
       <tbody className="divide-y">{rows.map(row => <tr key={row.__id}>{columns.map(column => <td key={column} className="px-3 py-2 align-top text-xs">
         {column === statusColumn ? <select value={String(getValue(row, column))} onChange={event => onChange(row.__id, column, event.target.value)} className="h-8 rounded-lg border bg-[var(--panel)] px-2 text-xs outline-none">{statuses.map(status => <option key={status}>{status}</option>)}</select> :
           column === "Reconciliation Status" || column === "Status" ? <StatusBadge>{String(getValue(row, column))}</StatusBadge> :
-          <input value={String(getValue(row, column))} onChange={event => onChange(row.__id, column, event.target.value)} className="h-8 min-w-[130px] rounded-lg border bg-[var(--panel)] px-2 text-xs outline-none focus:border-teal-500" />}
+          <input value={String(getValue(row, column))} onChange={event => onChange(row.__id, column, event.target.value)} className="h-8 min-w-[130px] rounded-lg border bg-[var(--panel)] px-2 text-xs outline-none focus:border-medtech-red" />}
       </td>)}</tr>)}</tbody>
     </table>
   </div>;
@@ -248,3 +248,4 @@ function updateReconciliationFromImport(review: Review) {
 function slug(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 }
+
