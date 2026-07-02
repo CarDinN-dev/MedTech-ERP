@@ -56,7 +56,7 @@ export default function LoginPage() {
       <div className="absolute inset-0 opacity-25" style={{ backgroundImage: "radial-gradient(circle at 12% 22%, #ED1E36 0, transparent 24%), radial-gradient(circle at 82% 78%, #592C5A 0, transparent 28%), linear-gradient(135deg, rgba(255,255,255,.08), transparent 42%)" }} />
       <div className="absolute left-0 top-0 h-full w-1.5 bg-[var(--brand-red)]" />
       <div className="relative flex items-center gap-3">
-        <div className="grid h-16 w-16 place-items-center overflow-hidden rounded-xl bg-white shadow-lg shadow-[#050b1d]/30"><Image src="/brand-mark.svg" alt="MedTech" width={56} height={56} priority className="object-contain" style={{ width: 56, height: 56 }} /></div>
+        <div className="grid h-16 w-16 place-items-center overflow-hidden"><Image src="/brand-mark.svg" alt="MedTech" width={56} height={56} priority className="object-contain" style={{ width: 56, height: 56 }} /></div>
         <div><div className="text-lg font-bold">MedTech <span className="text-red-300">ERP</span></div><div className="text-[10px] tracking-[.18em] text-slate-400">CORPORATION TRADING</div></div>
       </div>
       <div className="relative my-auto max-w-xl">
@@ -71,7 +71,7 @@ export default function LoginPage() {
     </section>
     <section className="flex items-center justify-center p-6">
       <div className="w-full max-w-[420px]">
-        <div className="mb-9 lg:hidden"><div className="inline-flex items-center gap-2"><div className="grid h-11 w-11 place-items-center overflow-hidden rounded-xl border bg-white shadow-sm"><Image src="/brand-mark.svg" alt="MedTech" width={40} height={40} priority className="object-contain" style={{ width: 40, height: 40 }} /></div><b>MedTech ERP</b></div></div>
+        <div className="mb-9 lg:hidden"><div className="inline-flex items-center gap-2"><div className="grid h-11 w-11 place-items-center overflow-hidden"><Image src="/brand-mark.svg" alt="MedTech" width={40} height={40} priority className="object-contain" style={{ width: 40, height: 40 }} /></div><b>MedTech ERP</b></div></div>
         <div className="mb-8">
           <div className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-medtech-red/15 bg-[var(--red-tint)] px-2.5 py-1 text-[10px] font-bold text-medtech-red"><KeyRound className="h-3.5 w-3.5" /> {demoMode ? "CLIENT DEMO LOGIN" : "SECURE LOGIN"}</div>
           <h2 className="text-3xl font-bold tracking-tight">Welcome back</h2>
