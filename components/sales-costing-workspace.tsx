@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Archive, BadgeCheck, Copy, Download, FileDown, FileText, Plus, Printer, RefreshCcw, Save, Search, Upload, X } from "lucide-react";
@@ -161,7 +161,7 @@ export function SalesCostingWorkspace() {
   return <div className="overflow-hidden bg-[var(--panel)]">
     <input ref={fileRef} type="file" accept=".xlsx,.xlsm" className="hidden" onChange={event => importExcel(event.target.files?.[0])} />
     <div className="flex flex-wrap items-center gap-2 border-b px-5 py-3.5">
-      <div className="relative min-w-[220px] flex-1 md:max-w-sm"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input value={filters.q} onChange={event => setFilters({ ...filters, q: event.target.value })} placeholder="Search costing sheets..." className="h-9 w-full rounded-lg border bg-[var(--panel)] pl-9 pr-3 text-sm outline-none focus:border-teal-500" /></div>
+      <div className="relative min-w-[220px] flex-1 md:max-w-sm"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input value={filters.q} onChange={event => setFilters({ ...filters, q: event.target.value })} placeholder="Search costing sheets..." className="h-9 w-full rounded-lg border bg-[var(--panel)] pl-9 pr-3 text-sm outline-none focus:border-medtech-red" /></div>
       <Select value={filters.customer} options={options.customer} placeholder="Customer" onChange={value => setFilters({ ...filters, customer: value })} />
       <Select value={filters.bu} options={options.bu} placeholder="BU" onChange={value => setFilters({ ...filters, bu: value })} />
       <Select value={filters.salesperson} options={options.salesperson} placeholder="Salesperson" onChange={value => setFilters({ ...filters, salesperson: value })} />
@@ -202,7 +202,7 @@ function CostingList({ rows, selected, onSelect }: { rows: CostingSheet[]; selec
   return <div className="max-h-[720px] overflow-auto divide-y">{rows.map(record => {
     const summary = costingSummary(record);
     const warnings = costingWarnings(record);
-    return <button key={record.id} onClick={() => onSelect(record.id)} className={cn("block w-full px-5 py-4 text-left hover:bg-slate-50 dark:hover:bg-slate-800/40", selected?.id === record.id && "bg-teal-50/70 dark:bg-teal-950/20")}>
+    return <button key={record.id} onClick={() => onSelect(record.id)} className={cn("block w-full px-5 py-4 text-left hover:bg-slate-50 dark:hover:bg-slate-800/40", selected?.id === record.id && "bg-[var(--navy-tint)] dark:bg-[var(--elevated)]")}>
       <div className="flex items-start justify-between gap-3"><div><div className="text-xs font-bold">{record["Costing Sheet No"]} Rev {record["Revision No"]}</div><div className="mt-1 text-sm font-semibold">{record.Customer}</div></div><StatusBadge>{record.Status}</StatusBadge></div>
       <div className="mt-2 text-xs text-[var(--muted)]">{record["Sales Pathway"]} / {record["Business Unit"]} / {record.Salesperson}</div>
       <div className="mt-3 grid grid-cols-3 gap-2 text-[11px]"><span>{qar(summary["Net Total"])}</span><span>{summary["Gross Margin %"].toFixed(1)}%</span><span>{warnings.length} warnings</span></div>
@@ -216,7 +216,7 @@ function CostingDetail({ record, all, onEdit, onRecalc, onDuplicate, onSubmit, o
   const approved = record["Approval Status"] === "Approved";
   return <div className="min-w-0 p-5 print:p-0">
     <div className="flex flex-wrap items-start justify-between gap-3">
-      <div><div className="text-[10px] font-bold uppercase text-teal-600">Sales / Estimation / Costing</div><h2 className="mt-1 text-xl font-bold">{record["Costing Sheet No"]} Rev {record["Revision No"]}</h2><div className="mt-1 text-xs text-[var(--muted)]">{record.Customer} / {record["Sales Pathway"]} / {record["Approval Status"]}</div></div>
+      <div><div className="text-[10px] font-bold uppercase text-medtech-red">Sales / Estimation / Costing</div><h2 className="mt-1 text-xl font-bold">{record["Costing Sheet No"]} Rev {record["Revision No"]}</h2><div className="mt-1 text-xs text-[var(--muted)]">{record.Customer} / {record["Sales Pathway"]} / {record["Approval Status"]}</div></div>
       <div className="flex flex-wrap gap-2 print:hidden">
         <Button variant="secondary" onClick={onEdit}>Edit</Button><Button variant="secondary" onClick={onRecalc}><RefreshCcw className="h-4 w-4" />Recalculate</Button><Button variant="secondary" onClick={onDuplicate}><Copy className="h-4 w-4" />New revision</Button><Button variant="secondary" onClick={onSubmit}>Submit approval</Button><Button variant="secondary" onClick={onApprove}><BadgeCheck className="h-4 w-4" />Approve</Button><Button variant="secondary" onClick={onReject}>Reject</Button><Button variant="secondary" onClick={onArchive}><Archive className="h-4 w-4" />Archive</Button><Button onClick={onQuotation} disabled={!approved}>Create quotation</Button>
       </div>
@@ -244,7 +244,7 @@ function CostingModal({ mode, source, onClose, onSave }: { mode: ModalMode; sour
   const removeLine = (id: string) => setSheet(current => calculateCosting({ ...current, lines: current.lines.filter(line => line.id !== id).map((line, index) => ({ ...line, "Line No": String(index + 1) })) }));
   return <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/45 p-4">
     <div className="w-full max-w-7xl overflow-hidden rounded-2xl border bg-[var(--panel)] shadow-panel">
-      <div className="flex items-center justify-between border-b px-5 py-4"><div><div className="text-[10px] font-bold uppercase text-teal-600">Local Sales Costing</div><h3 className="font-bold">{mode === "edit" ? "Edit costing" : mode === "copy" ? "Copy from previous costing" : "Create costing"}</h3></div><button aria-label="Close modal" onClick={onClose} className="rounded-lg p-2 hover:bg-slate-100 dark:hover:bg-slate-800"><X className="h-4 w-4" /></button></div>
+      <div className="flex items-center justify-between border-b px-5 py-4"><div><div className="text-[10px] font-bold uppercase text-medtech-red">Local Sales Costing</div><h3 className="font-bold">{mode === "edit" ? "Edit costing" : mode === "copy" ? "Copy from previous costing" : "Create costing"}</h3></div><button aria-label="Close modal" onClick={onClose} className="rounded-lg p-2 hover:bg-slate-100 dark:hover:bg-slate-800"><X className="h-4 w-4" /></button></div>
       <div className="max-h-[74vh] overflow-auto p-5">
         {locked && <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">Approved cost fields are locked. Create a new revision for cost changes.</div>}
         <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-5">
@@ -254,7 +254,7 @@ function CostingModal({ mode, source, onClose, onSave }: { mode: ModalMode; sour
           <label><span className="mb-1.5 block text-[11px] font-semibold text-[var(--muted)]">Approval Status</span><select value={sheet["Approval Status"]} onChange={event => update("Approval Status", event.target.value)} className="h-10 w-full rounded-xl border bg-[var(--panel)] px-3 text-sm">{costingApprovalStatuses.map(item => <option key={item}>{item}</option>)}</select></label>
         </div>
         <div className="mt-5 flex flex-wrap gap-2"><Button variant="secondary" onClick={addLine}><Plus className="h-4 w-4" />Add blank line</Button>{productMasterRows.map(product => <Button key={product["SKU Code"]} variant="ghost" onClick={() => addProductLine(product["SKU Code"])}>{product["SKU Code"]}</Button>)}</div>
-        <div className="mt-4 overflow-x-auto rounded-xl border"><table className="w-full min-w-[1900px] text-left text-xs"><thead><tr className="border-b bg-slate-50 dark:bg-slate-900/40">{costingLineColumns.map(column => <th key={column} className="px-2 py-2 text-[10px] uppercase text-slate-400">{column}</th>)}<th /></tr></thead><tbody className="divide-y">{sheet.lines.map(line => <tr key={line.id}>{costingLineColumns.map(column => <td key={column} className="px-2 py-2"><input value={String(line[column] ?? "")} disabled={locked && lockedLineKeys.has(column)} onChange={event => updateLine(line.id, column, event.target.value)} className="h-8 w-28 rounded-lg border bg-[var(--panel)] px-2 outline-none focus:border-teal-500 disabled:bg-slate-100 dark:disabled:bg-slate-900" /></td>)}<td><button onClick={() => removeLine(line.id)} className="rounded-lg p-2 text-rose-600 hover:bg-rose-50">Delete</button></td></tr>)}</tbody></table></div>
+        <div className="mt-4 overflow-x-auto rounded-xl border"><table className="w-full min-w-[1900px] text-left text-xs"><thead><tr className="border-b bg-slate-50 dark:bg-slate-900/40">{costingLineColumns.map(column => <th key={column} className="px-2 py-2 text-[10px] uppercase text-slate-400">{column}</th>)}<th /></tr></thead><tbody className="divide-y">{sheet.lines.map(line => <tr key={line.id}>{costingLineColumns.map(column => <td key={column} className="px-2 py-2"><input value={String(line[column] ?? "")} disabled={locked && lockedLineKeys.has(column)} onChange={event => updateLine(line.id, column, event.target.value)} className="h-8 w-28 rounded-lg border bg-[var(--panel)] px-2 outline-none focus:border-medtech-red disabled:bg-slate-100 dark:disabled:bg-slate-900" /></td>)}<td><button onClick={() => removeLine(line.id)} className="rounded-lg p-2 text-rose-600 hover:bg-rose-50">Delete</button></td></tr>)}</tbody></table></div>
       </div>
       <div className="flex justify-end gap-2 border-t bg-slate-50/70 px-5 py-4 dark:bg-slate-900/30"><Button variant="secondary" onClick={onClose}>Cancel</Button><Button onClick={() => onSave(addHistory(calculateCosting(sheet), mode === "edit" ? "UPDATE" : "CREATE", "Costing saved locally"))}><Save className="h-4 w-4" />Save costing</Button></div>
     </div>
@@ -308,7 +308,7 @@ function Select({ value, options, placeholder, onChange }: { value: string; opti
 }
 
 function Field({ label, value, onChange, type = "text", disabled }: { label: string; value: string; onChange: (value: string) => void; type?: string; disabled?: boolean }) {
-  return <label><span className="mb-1.5 block text-[11px] font-semibold text-[var(--muted)]">{label}</span><input type={type} value={value} disabled={disabled} onChange={event => onChange(event.target.value)} className="h-10 w-full rounded-xl border bg-[var(--panel)] px-3 text-sm outline-none focus:border-teal-500 disabled:bg-slate-100 dark:disabled:bg-slate-900" /></label>;
+  return <label><span className="mb-1.5 block text-[11px] font-semibold text-[var(--muted)]">{label}</span><input type={type} value={value} disabled={disabled} onChange={event => onChange(event.target.value)} className="h-10 w-full rounded-xl border bg-[var(--panel)] px-3 text-sm outline-none focus:border-medtech-red disabled:bg-slate-100 dark:disabled:bg-slate-900" /></label>;
 }
 
 const numericLineKeys = new Set(["Quantity", "Native Unit Cost", "Exchange Rate", "Unit Cost QAR", "Total Cost QAR", "Freight %", "Customs %", "Clearance Charges", "Insurance %", "Bank Charges %", "Warranty Cost %", "Installation Cost", "Service Cost", "Other Charges", "Landed Cost", "Margin %", "Margin Amount", "Selling Unit Price", "Discount %", "Final Unit Price", "Line Total Selling Price", "Gross Profit", "Gross Margin %", "Lead Time Days"]);
@@ -317,3 +317,4 @@ function unique(values: string[]) { return Array.from(new Set(values.filter(Bool
 function user() { return getDemoSession()?.name || PRESENTATION_USER_NAME; }
 function num(value: string) { const parsed = Number(String(value).replace(/[^0-9.-]/g, "")); return Number.isFinite(parsed) ? parsed : 0; }
 function qar(value: number) { return `QAR ${Math.round(value).toLocaleString("en-US")}`; }
+
