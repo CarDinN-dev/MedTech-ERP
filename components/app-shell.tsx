@@ -73,7 +73,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const sidebar = <aside className="flex h-full w-[264px] flex-col border-r border-[var(--sidebar-border)] bg-[var(--sidebar)] text-[var(--sidebar-text)] shadow-panel">
     <div className="flex h-[76px] items-center gap-3 border-b border-[var(--sidebar-border)] px-5">
-      <div className="grid h-12 w-12 place-items-center overflow-hidden rounded-xl bg-white shadow-soft"><Image src="/brand-mark.svg" alt="MedTech" width={44} height={44} priority className="object-contain" style={{ width: 44, height: 44 }} /></div>
+      <div className="grid h-12 w-12 place-items-center overflow-hidden"><Image src="/brand-mark.svg" alt="MedTech" width={44} height={44} priority className="object-contain" style={{ width: 44, height: 44 }} /></div>
       <div className="min-w-0"><div className="text-[15px] font-bold tracking-tight text-[var(--text)]">MedTech <span className="font-medium text-medtech-red">ERP</span></div><div className="truncate text-[10px] tracking-[.16em] text-[var(--sidebar-muted)]">CORPORATION TRADING</div></div>
       <button type="button" aria-label="Close menu" onClick={() => setMobileOpen(false)} className="ml-auto rounded-lg p-2 text-[var(--sidebar-muted)] hover:bg-[var(--sidebar-hover)] hover:text-[var(--text)] focus-visible:outline-none focus-visible:shadow-focus lg:hidden"><X className="h-5 w-5" /></button>
     </div>
