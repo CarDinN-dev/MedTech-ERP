@@ -13,6 +13,13 @@ const line: MonthlyPayrollLineInput = {
   leaveDays: 0,
   loanDeduction: 2000,
   otherDeductions: 250,
+  overtimeHours: 4,
+  overtimeAmount: 500,
+  salaryAdvanceAmount: 300,
+  salaryAdjustmentAmount: -100,
+  paidVacationSalaryAmount: 0,
+  insuranceRefundAmount: 50,
+  airTicketEncashmentAmount: 0,
   leaveSettlementAmount: 1000,
   eosSettlementAmount: 0,
   hasBankDetails: true
@@ -22,8 +29,9 @@ describe("monthly payroll calculations", () => {
   it("uses calendar days for salary payable", () => {
     expect(calculateMonthlyPayrollLine(line, { salaryCalculationMethod: "calendar_days", configuredWorkingDays: 26 }, 30)).toEqual({
       salaryPayable: 10000,
-      totalDeductions: 2250,
-      netPay: 8750
+      totalEarnings: 1550,
+      totalDeductions: 2650,
+      netPay: 8900
     });
   });
 
@@ -40,7 +48,7 @@ describe("monthly payroll calculations", () => {
 
   it("blocks finalization issues", () => {
     const bad = { ...line, basicSalary: 0, grossSalary: 0, hasBankDetails: false };
-    expect(validateMonthlyPayroll([bad, line, line], [{ salaryPayable: 0, totalDeductions: 0, netPay: 0 }, { salaryPayable: 1, totalDeductions: 0, netPay: 1 }, { salaryPayable: 1, totalDeductions: 0, netPay: -1 }])).toEqual([
+    expect(validateMonthlyPayroll([bad, line, line], [{ salaryPayable: 0, totalEarnings: 0, totalDeductions: 0, netPay: 0 }, { salaryPayable: 1, totalEarnings: 0, totalDeductions: 0, netPay: 1 }, { salaryPayable: 1, totalEarnings: 0, totalDeductions: 0, netPay: -1 }])).toEqual([
       "Fahad Al-Kuwari is missing salary.",
       "Fahad Al-Kuwari is missing bank details.",
       "MT-0018 is duplicated.",
