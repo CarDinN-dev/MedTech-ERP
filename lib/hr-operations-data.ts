@@ -160,11 +160,78 @@ const payrollEffect: Record<(typeof payrollModules)[number], "Earning" | "Deduct
   "Salary Records": "Neutral", Overtime: "Earning", "Salary Advance": "Deduction", "Salary Adjustment": "Neutral", "Paid Vacation Salary": "Earning", Gratuity: "Earning", "Employee Loan": "Deduction", "Salary Account Transfer": "Neutral", "Insurance Claims / Refund": "Neutral", "Air Ticket Encashment": "Earning", "Leave Settlement": "Neutral", "Final Settlement": "Neutral"
 };
 
+const payrollRow = (record: string, employee: string, quantity: string, rate: string, fixed: string, amount: string, effect: "Earning" | "Deduction" | "Neutral", status = "Approved") => ({
+  Record: record,
+  Employee: employee,
+  "Document date": "20 Jun 2026",
+  "Payroll period": "June 2026",
+  Quantity: quantity,
+  Rate: rate,
+  "Fixed amount": fixed,
+  "Calculated amount": amount,
+  "Payroll effect": effect,
+  "Net effect": effect === "Deduction" ? `QAR -${amount.replace(/^QAR\s*/, "")}` : effect === "Earning" ? amount : "QAR 0",
+  Status: status
+});
+
+const payrollDemoRows: Record<string, Array<Record<string, string>>> = {
+  "Salary Records": [
+    payrollRow("SAL-2026-0018", "Fahad Al-Kuwari", "1", "QAR 0", "QAR 14,500", "QAR 14,500", "Neutral", "Processed"),
+    payrollRow("SAL-2026-0024", "Aisha Rahman", "1", "QAR 0", "QAR 12,800", "QAR 12,800", "Neutral", "Processed"),
+    payrollRow("SAL-2026-0041", "Naveen Kumar", "1", "QAR 0", "QAR 11,200", "QAR 11,200", "Neutral", "Processed"),
+    payrollRow("SAL-2026-0053", "Mariam Said", "1", "QAR 0", "QAR 10,800", "QAR 10,800", "Neutral", "Processed"),
+    payrollRow("SAL-2026-0064", "Leila D'Souza", "1", "QAR 0", "QAR 9,800", "QAR 9,800", "Neutral", "Processed"),
+    payrollRow("SAL-2026-0072", "Omar Nasser", "1", "QAR 0", "QAR 8,900", "QAR 8,900", "Neutral", "Processed")
+  ],
+  Overtime: [
+    payrollRow("OT-2026-0024", "Aisha Rahman", "12", "QAR 125", "QAR 0", "QAR 1,500", "Earning"),
+    payrollRow("OT-2026-0041", "Naveen Kumar", "6", "QAR 100", "QAR 0", "QAR 600", "Earning"),
+    payrollRow("OT-2026-0072", "Omar Nasser", "4", "QAR 95", "QAR 0", "QAR 380", "Earning")
+  ],
+  "Salary Advance": [
+    payrollRow("ADV-2026-0018", "Fahad Al-Kuwari", "1", "QAR 0", "QAR 2,000", "QAR 2,000", "Deduction"),
+    payrollRow("ADV-2026-0072", "Omar Nasser", "1", "QAR 0", "QAR 1,500", "QAR 1,500", "Deduction")
+  ],
+  "Salary Adjustment": [
+    payrollRow("ADJ-2026-0053", "Mariam Said", "1", "QAR 0", "QAR 350", "QAR 350", "Earning"),
+    payrollRow("ADJ-2026-0064", "Leila D'Souza", "1", "QAR 0", "QAR 200", "QAR 200", "Deduction")
+  ],
+  "Paid Vacation Salary": [
+    payrollRow("PVS-2026-0018", "Fahad Al-Kuwari", "3", "QAR 500", "QAR 0", "QAR 1,500", "Earning"),
+    payrollRow("PVS-2026-0041", "Naveen Kumar", "2", "QAR 400", "QAR 0", "QAR 800", "Earning")
+  ],
+  Gratuity: [
+    payrollRow("GRT-2026-0072", "Omar Nasser", "1", "QAR 0", "QAR 6,225", "QAR 6,225", "Earning", "Submitted")
+  ],
+  "Employee Loan": [
+    payrollRow("ELN-2026-0018", "Fahad Al-Kuwari", "1", "QAR 0", "QAR 1,000", "QAR 1,000", "Deduction"),
+    payrollRow("ELN-2026-0072", "Omar Nasser", "1", "QAR 0", "QAR 2,000", "QAR 2,000", "Deduction")
+  ],
+  "Salary Account Transfer": [
+    payrollRow("SAT-2026-0018", "Fahad Al-Kuwari", "1", "QAR 0", "QAR 0", "QAR 0", "Neutral", "Processed"),
+    payrollRow("SAT-2026-0024", "Aisha Rahman", "1", "QAR 0", "QAR 0", "QAR 0", "Neutral", "Processed")
+  ],
+  "Insurance Claims / Refund": [
+    payrollRow("INS-2026-0064", "Leila D'Souza", "1", "QAR 0", "QAR 450", "QAR 450", "Earning"),
+    payrollRow("INS-2026-0053", "Mariam Said", "1", "QAR 0", "QAR 275", "QAR 275", "Earning")
+  ],
+  "Air Ticket Encashment": [
+    payrollRow("AIR-2026-0024", "Aisha Rahman", "1", "QAR 0", "QAR 1,500", "QAR 1,500", "Earning"),
+    payrollRow("AIR-2026-0041", "Naveen Kumar", "1", "QAR 0", "QAR 1,200", "QAR 1,200", "Earning")
+  ],
+  "Leave Settlement": [
+    payrollRow("LVS-2026-0053", "Mariam Said", "2", "QAR 360", "QAR 0", "QAR 720", "Earning", "Processed")
+  ],
+  "Final Settlement": [
+    payrollRow("EOS-2026-0072", "Omar Nasser", "1", "QAR 0", "QAR 5,625", "QAR 5,625", "Earning", "Processed")
+  ]
+};
+
 export const payrollViews: Record<string, HrOperationalView> = Object.fromEntries(payrollModules.map((module, index) => [module, {
   primaryAction: `Add ${module.toLowerCase()}`,
   helper: `Create controlled ${module.toLowerCase()} entries with quantity/rate calculation and payroll impact.`,
   columns: ["Record", "Employee", "Document date", "Payroll period", "Quantity", "Rate", "Fixed amount", "Calculated amount", "Payroll effect", "Net effect", "Status"],
-  rows: [{ Record: `PCI-2026-${String(180 + index).padStart(4, "0")}`, Employee: module === "Final Settlement" ? "Fahad Al-Kuwari" : index % 2 ? "Aisha Rahman" : "Fahad Al-Kuwari", "Document date": "20 Jun 2026", "Payroll period": "June 2026", Quantity: module === "Overtime" ? "12" : "1", Rate: module === "Overtime" ? "QAR 125" : "QAR 0", "Fixed amount": module === "Salary Advance" ? "QAR 2,000" : module === "Final Settlement" ? "QAR 8,500" : "QAR 0", "Calculated amount": module === "Overtime" ? "QAR 1,500" : module === "Salary Advance" ? "QAR 2,000" : module === "Final Settlement" ? "QAR 8,500" : "QAR 0", "Payroll effect": payrollEffect[module], "Net effect": payrollEffect[module] === "Deduction" ? "QAR -2,000" : payrollEffect[module] === "Earning" ? "QAR 1,500" : module === "Final Settlement" ? "QAR 8,500" : "QAR 0", Status: "Approved" }],
+  rows: payrollDemoRows[module] || [{ Record: `PCI-2026-${String(180 + index).padStart(4, "0")}`, Employee: "Fahad Al-Kuwari", "Document date": "20 Jun 2026", "Payroll period": "June 2026", Quantity: "1", Rate: "QAR 0", "Fixed amount": "QAR 0", "Calculated amount": "QAR 0", "Payroll effect": payrollEffect[module], "Net effect": "QAR 0", Status: "Approved" }],
   selectOptions: { "Payroll effect": ["Earning", "Deduction", "Neutral"], Status: ["Draft", "Submitted", "Approved", "Processed", "Rejected"] },
   defaultValues: { Record: "Auto generated", "Document date": "20 Jun 2026", "Payroll period": "June 2026", "Payroll effect": payrollEffect[module], Status: "Draft", Quantity: "1", Rate: "QAR 0", "Fixed amount": "QAR 0", "Calculated amount": "QAR 0", "Net effect": "QAR 0" }
 }])) as Record<string, HrOperationalView>;
