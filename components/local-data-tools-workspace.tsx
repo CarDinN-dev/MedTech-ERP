@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useRef, useState } from "react";
 import { DatabaseBackup, Download, HardDrive, RefreshCw, RotateCcw, Upload } from "lucide-react";
@@ -52,7 +52,7 @@ export function LocalDataToolsWorkspace() {
     <input ref={inputRef} type="file" accept="application/json,.json" className="hidden" onChange={event => importData(event.target.files?.[0])} />
     <div className="grid gap-4 lg:grid-cols-3">
       <section className="rounded-2xl border p-4">
-        <div className="mb-4 flex items-center gap-3"><DatabaseBackup className="h-5 w-5 text-teal-600" /><h2 className="text-sm font-bold">Backup / Restore</h2></div>
+        <div className="mb-4 flex items-center gap-3"><DatabaseBackup className="h-5 w-5 text-medtech-red" /><h2 className="text-sm font-bold">Backup / Restore</h2></div>
         <div className="flex flex-wrap gap-2">
           <Button onClick={() => exportData(`medtech-local-backup-${Date.now()}.json`)}><Download className="h-4 w-4" /> Export All Local Data</Button>
           <Button variant="secondary" onClick={() => exportData(`medtech-demo-data-${Date.now()}.json`)}><Download className="h-4 w-4" /> Export Demo Data JSON</Button>
@@ -86,3 +86,4 @@ export function LocalDataToolsWorkspace() {
 function Metric({ label, value }: { label: string; value: string }) {
   return <div className="rounded-lg bg-slate-50 p-3 dark:bg-slate-900/50"><div className="text-[10px] font-bold uppercase tracking-wide text-slate-400">{label}</div><div className="mt-1 font-semibold">{value}</div></div>;
 }
+
