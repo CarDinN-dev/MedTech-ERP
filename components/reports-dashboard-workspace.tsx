@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { Download, FileDown, Filter, FileText, PlugZap, Search, SlidersHorizontal } from "lucide-react";
@@ -21,7 +21,7 @@ import { seedSalesWorkflows, type SalesWorkflowRecord } from "@/lib/sales-workfl
 import { cn } from "@/lib/utils";
 
 const salesWorkflowStorageKey = "medtech-demo:sales-workflows:v1";
-const chartColors = ["#0d9488", "#2563eb", "#f59e0b", "#e11d48", "#7c3aed", "#0891b2", "#16a34a", "#475569"];
+const chartColors = ["#243168", "#2563eb", "#f59e0b", "#e11d48", "#7c3aed", "#0891b2", "#16a34a", "#475569"];
 const columns: Array<keyof ReportRow> = ["KPI", "Record", "BU", "Customer", "Salesperson", "Product Category", "Supplier", "Engineer", "Contract", "Status", "Amount", "Margin", "Days", "Notes"];
 
 export function ReportsDashboardWorkspace() {
@@ -74,7 +74,7 @@ export function ReportsDashboardWorkspace() {
   return <div className="mx-auto max-w-[1600px] p-4 md:p-7">
     <div className="mb-6 flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
       <div>
-        <div className="mb-1 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[.14em] text-slate-400"><SlidersHorizontal className="h-3.5 w-3.5 text-teal-600" /> Local reporting layer</div>
+        <div className="mb-1 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[.14em] text-slate-400"><SlidersHorizontal className="h-3.5 w-3.5 text-medtech-red" /> Local reporting layer</div>
         <h1 className="text-2xl font-bold tracking-tight">Reports & Analytics</h1>
         <p className="mt-1 text-xs text-[var(--muted)]">Local demo dashboards calculated from ERP records, with seeded summaries only where source data is thin.</p>
       </div>
@@ -88,8 +88,8 @@ export function ReportsDashboardWorkspace() {
 
     <section className="mb-5 overflow-hidden rounded-2xl border bg-[var(--panel)] shadow-soft">
       <div className="flex gap-1 overflow-x-auto border-b px-4 pt-1">
-        {dashboards.map(dashboard => <button key={dashboard.id} onClick={() => { setActiveId(dashboard.id); setDrill(""); }} className={cn("relative whitespace-nowrap px-3 py-4 text-xs font-semibold transition", activeId === dashboard.id ? "text-teal-600" : "text-[var(--muted)] hover:text-[var(--text)]")}>{dashboard.title}{activeId === dashboard.id && <span className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-teal-500" />}</button>)}
-        <button onClick={() => { setActiveId("integrations"); setDrill(""); }} className={cn("relative inline-flex items-center gap-2 whitespace-nowrap px-3 py-4 text-xs font-semibold transition", activeId === "integrations" ? "text-teal-600" : "text-[var(--muted)] hover:text-[var(--text)]")}><PlugZap className="h-4 w-4" />Integration Simulators{activeId === "integrations" && <span className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-teal-500" />}</button>
+        {dashboards.map(dashboard => <button key={dashboard.id} onClick={() => { setActiveId(dashboard.id); setDrill(""); }} className={cn("relative whitespace-nowrap px-3 py-4 text-xs font-semibold transition", activeId === dashboard.id ? "text-medtech-red" : "text-[var(--muted)] hover:text-[var(--text)]")}>{dashboard.title}{activeId === dashboard.id && <span className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-medtech-red" />}</button>)}
+        <button onClick={() => { setActiveId("integrations"); setDrill(""); }} className={cn("relative inline-flex items-center gap-2 whitespace-nowrap px-3 py-4 text-xs font-semibold transition", activeId === "integrations" ? "text-medtech-red" : "text-[var(--muted)] hover:text-[var(--text)]")}><PlugZap className="h-4 w-4" />Integration Simulators{activeId === "integrations" && <span className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-medtech-red" />}</button>
       </div>
       {activeId === "integrations" ? <div className="p-4"><IntegrationSimulatorsWorkspace /></div> : <>
       <div className="grid gap-3 border-b p-4 md:grid-cols-2 xl:grid-cols-4">
@@ -110,7 +110,7 @@ export function ReportsDashboardWorkspace() {
 
     {activeId !== "integrations" && <>
     <section className="mb-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      {active.kpis.map((kpi, index) => <button key={kpi.label} onClick={() => setDrill(current => current === kpi.drill ? "" : kpi.drill)} className={cn("rounded-2xl border bg-[var(--panel)] p-5 text-left shadow-soft transition hover:-translate-y-0.5 hover:border-teal-200", drill === kpi.drill && "border-teal-300 ring-2 ring-teal-500/10")} style={{ animationDelay: `${index * 45}ms` }}>
+      {active.kpis.map((kpi, index) => <button key={kpi.label} onClick={() => setDrill(current => current === kpi.drill ? "" : kpi.drill)} className={cn("rounded-2xl border bg-[var(--panel)] p-5 text-left shadow-soft transition hover:-translate-y-0.5 hover:border-medtech-navy/20", drill === kpi.drill && "border-medtech-red/40 ring-2 ring-[var(--focus-ring)]")} style={{ animationDelay: `${index * 45}ms` }}>
         <p className="text-xs font-medium text-[var(--muted)]">{kpi.label}</p>
         <div className="mt-2 text-[24px] font-bold tracking-tight tabular">{kpi.value}</div>
         <div className={cn("mt-3 text-[11px] font-semibold", kpi.tone === "danger" ? "text-rose-600" : kpi.tone === "warning" ? "text-amber-600" : kpi.tone === "success" ? "text-emerald-600" : "text-slate-400")}>{kpi.note}</div>
@@ -123,7 +123,7 @@ export function ReportsDashboardWorkspace() {
       </Panel>
       <Panel title="Drill-down rows" subtitle={drill || "Click any KPI card to narrow this table"}>
         <div className="flex items-center gap-3 border-b px-4 py-3">
-          <div className="relative min-w-[180px] flex-1"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search report rows..." className="h-9 w-full rounded-lg border bg-[var(--panel)] pl-9 pr-3 text-sm outline-none focus:border-teal-500" /></div>
+          <div className="relative min-w-[180px] flex-1"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search report rows..." className="h-9 w-full rounded-lg border bg-[var(--panel)] pl-9 pr-3 text-sm outline-none focus:border-medtech-red" /></div>
           <Button variant="ghost" onClick={exportRows}><Download className="h-4 w-4" /></Button>
         </div>
         <div className="max-h-[330px] overflow-auto">
@@ -228,13 +228,13 @@ function NativeLineChart({ data, filled }: { data: Array<{ name: string; value: 
   const area = `${path} L${width - pad},${height - pad} L${pad},${height - pad} Z`;
 
   return <svg viewBox={`0 0 ${width} ${height}`} className="h-full w-full overflow-visible" role="img" aria-label="Report chart">
-    <defs><linearGradient id="reportChartFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#0d9488" stopOpacity="0.22" /><stop offset="100%" stopColor="#0d9488" stopOpacity="0" /></linearGradient></defs>
+    <defs><linearGradient id="reportChartFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#243168" stopOpacity="0.22" /><stop offset="100%" stopColor="#243168" stopOpacity="0" /></linearGradient></defs>
     {[0, 1, 2, 3, 4].map(index => <line key={index} x1={pad} x2={width - pad} y1={pad + index * 42} y2={pad + index * 42} stroke="var(--line)" strokeDasharray="3 3" />)}
     {filled && <path d={area} fill="url(#reportChartFill)" />}
-    <path d={path} fill="none" stroke={filled ? "#0d9488" : "#2563eb"} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+    <path d={path} fill="none" stroke={filled ? "#243168" : "#2563eb"} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
     {data.map((row, index) => {
       const { x, y } = point(row.value, index);
-      return <g key={`${row.name}-${index}`}><circle cx={x} cy={y} r="3.5" fill={filled ? "#0d9488" : "#2563eb"} /><text x={x} y={height - 5} textAnchor="middle" fontSize="10" fill="#94a3b8">{row.name.slice(0, 9)}</text></g>;
+      return <g key={`${row.name}-${index}`}><circle cx={x} cy={y} r="3.5" fill={filled ? "#243168" : "#2563eb"} /><text x={x} y={height - 5} textAnchor="middle" fontSize="10" fill="#94a3b8">{row.name.slice(0, 9)}</text></g>;
     })}
   </svg>;
 }
@@ -252,3 +252,4 @@ function NativePieChart({ data }: { data: Array<{ name: string; value: number }>
 
   return <div className="flex h-full items-center justify-center gap-8"><div className="grid h-56 w-56 shrink-0 place-items-center rounded-full" style={{ background: `conic-gradient(${gradient})` }}><div className="grid h-32 w-32 place-items-center rounded-full bg-[var(--panel)] text-center"><b className="text-lg">{compact(total)}</b><span className="-mt-2 text-[10px] text-slate-400">total</span></div></div><div className="grid max-w-xs gap-2 text-xs">{data.slice(0, 8).map((row, index) => <div key={`${row.name}-${index}`} className="flex items-center gap-2"><i className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: chartColors[index % chartColors.length] }} /><span className="truncate text-[var(--muted)]">{row.name}</span><b className="ml-auto">{compact(row.value)}</b></div>)}</div></div>;
 }
+
