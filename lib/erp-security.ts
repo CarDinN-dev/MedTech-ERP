@@ -20,7 +20,7 @@ export const rolePermissions: Record<ErpRole, Partial<Record<ErpModule, Set<ErpA
   "Super Admin": Object.fromEntries(erpModules.map(module => [module, all])) as Record<ErpModule, Set<ErpAction>>,
   Management: { Sales: decision, Procurement: decision, Inventory: decision, Quality: decision, Finance: decision, Service: decision, Projects: decision, HR: decision, Payroll: decision, Reports: read, Approvals: decision },
   "Finance Manager": { Finance: post, Procurement: decision, Costing: decision, Payroll: decision, Reports: read, Approvals: decision },
-  "HR Manager": { HR: post, Payroll: decision, Documents: work, Reports: read, Approvals: decision },
+  "HR Manager": { HR: post, Payroll: post, Documents: work, Reports: read, Approvals: decision },
   "HR Officer": { HR: work, Documents: work, Reports: read },
   "Payroll Manager": { Payroll: post, HR: read, Finance: read, Reports: read, Approvals: work },
   "Department Manager": { Sales: decision, Procurement: decision, Inventory: read, Service: decision, Projects: decision, HR: decision, Reports: read, Approvals: decision },
