@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { BadgeCheck, RefreshCcw, Search } from "lucide-react";
@@ -66,10 +66,10 @@ export function PricingEngineWorkspace() {
 
   return <div className="overflow-hidden bg-[var(--panel)]">
     <div className="flex flex-wrap items-center gap-2 border-b px-5 py-3">
-      {tabs.map(tab => <button key={tab} onClick={() => setActiveTab(tab)} className={cn("h-9 whitespace-nowrap rounded-lg border px-3 text-xs font-bold", activeTab === tab ? "border-teal-500 bg-teal-50 text-teal-700 dark:bg-teal-950/40 dark:text-teal-200" : "bg-[var(--panel)] text-[var(--muted)] hover:bg-slate-50 dark:hover:bg-slate-800")}>{tab}</button>)}
+      {tabs.map(tab => <button key={tab} onClick={() => setActiveTab(tab)} className={cn("h-9 whitespace-nowrap rounded-lg border px-3 text-xs font-bold", activeTab === tab ? "border-medtech-red bg-[var(--navy-tint)] text-medtech-navy dark:bg-[var(--elevated)] dark:text-red-100" : "bg-[var(--panel)] text-[var(--muted)] hover:bg-slate-50 dark:hover:bg-slate-800")}>{tab}</button>)}
     </div>
     <div className="flex flex-wrap items-center gap-3 border-b px-5 py-3.5">
-      <div className="relative min-w-[220px] flex-1 md:max-w-sm"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input value={query} onChange={event => setQuery(event.target.value)} className="h-9 w-full rounded-lg border bg-[var(--panel)] pl-9 pr-3 text-sm outline-none focus:border-teal-500" placeholder="Search pricing..." /></div>
+      <div className="relative min-w-[220px] flex-1 md:max-w-sm"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input value={query} onChange={event => setQuery(event.target.value)} className="h-9 w-full rounded-lg border bg-[var(--panel)] pl-9 pr-3 text-sm outline-none focus:border-medtech-red" placeholder="Search pricing..." /></div>
       {activeTab === "Special Tender Pricing" && <Button variant="secondary" onClick={approveSpecial}><BadgeCheck className="h-4 w-4" /> Approve special prices</Button>}
       {activeTab === "Price Approval Exceptions" && <Button variant="secondary" onClick={submitExceptions}><BadgeCheck className="h-4 w-4" /> Submit exceptions</Button>}
       <Button variant="secondary" onClick={reset}><RefreshCcw className="h-4 w-4" /> Reset</Button>
@@ -143,3 +143,4 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
 function qar(value: number) {
   return `QAR ${Math.round(value).toLocaleString("en-US")}`;
 }
+
